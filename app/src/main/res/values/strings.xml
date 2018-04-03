@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Diplomski</string>
+    <string name="fetch_movie_info_error">Couldn\'t fetch movie data</string>
+</resources>
