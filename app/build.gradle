@@ -8,7 +8,7 @@ android {
     }
     defaultConfig {
         applicationId "com.diplomski"
-        minSdkVersion 21
+        minSdkVersion 26
         targetSdkVersion 26
         versionCode 1
         versionName "1.0"
@@ -66,5 +66,8 @@ dependencies {
     annotationProcessor 'com.jakewharton:butterknife-compiler:8.8.1'
 
     compileOnly 'com.google.android.things:androidthings:+'
+    compile 'com.google.android.gms:play-services-location:11.0.4'
+
+    compile 'com.google.android.things.contrib:driver-gps:0.5'
 
 }
