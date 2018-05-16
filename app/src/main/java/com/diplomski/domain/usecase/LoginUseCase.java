@@ -1,17 +1,13 @@
-package com.diplomski.data.service;
+package com.diplomski.domain.usecase;
+
 
 
 import com.diplomski.data.api.models.request.LoginRequest;
 import com.diplomski.data.api.models.response.LoginApiResponse;
-import com.diplomski.data.api.models.response.MovieApiResponse;
-
-import java.util.List;
 
 import io.reactivex.Single;
 
-public interface NetworkService {
-
-    Single<List<MovieApiResponse>> movieInfo();
+public interface LoginUseCase {
 
     Single<LoginApiResponse> loginUser(LoginRequest loginRequest);
 

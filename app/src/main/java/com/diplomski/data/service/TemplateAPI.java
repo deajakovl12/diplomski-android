@@ -1,12 +1,17 @@
 package com.diplomski.data.service;
 
+import com.diplomski.data.api.models.request.LoginRequest;
+import com.diplomski.data.api.models.response.LoginApiResponse;
 import com.diplomski.data.api.models.response.MovieApiResponse;
 
 import java.util.List;
 
 import io.reactivex.Single;
+import retrofit2.http.Body;
 import retrofit2.http.GET;
+import retrofit2.http.POST;
 
+import static com.diplomski.data.api.APIConstants.PATH_LOGIN;
 import static com.diplomski.data.api.APIConstants.PATH_MOVIES;
 
 
@@ -15,6 +20,9 @@ public interface TemplateAPI {
 
     @GET(PATH_MOVIES)
     Single<List<MovieApiResponse>> movieInfo();
+
+    @POST(PATH_LOGIN)
+    Single<LoginApiResponse> loginUser(@Body LoginRequest loginRequest);
 
 //    @Headers(CONTENT_TYPE_HEADER)
 //    @POST(PATH_LOGIN)

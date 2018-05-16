@@ -1,6 +1,8 @@
 package com.diplomski.data.service;
 
 
+import com.diplomski.data.api.models.request.LoginRequest;
+import com.diplomski.data.api.models.response.LoginApiResponse;
 import com.diplomski.data.api.models.response.MovieApiResponse;
 
 import java.util.List;
@@ -21,5 +23,8 @@ public final class NetworkServiceImpl implements NetworkService {
         return Single.defer(() -> templateAPI.movieInfo());
     }
 
-
+    @Override
+    public Single<LoginApiResponse> loginUser(LoginRequest loginRequest) {
+        return Single.defer(() -> templateAPI.loginUser(loginRequest));
+    }
 }

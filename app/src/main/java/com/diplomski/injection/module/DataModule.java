@@ -6,6 +6,8 @@ import com.diplomski.application.TaskApplication;
 import com.diplomski.data.storage.PreferenceRepository;
 import com.diplomski.data.storage.SecureSharedPreferences;
 import com.diplomski.data.storage.TemplatePreferences;
+import com.diplomski.data.storage.database.DatabaseHelper;
+import com.diplomski.data.storage.database.DatabaseHelperImpl;
 
 import javax.inject.Singleton;
 
@@ -15,7 +17,10 @@ import dagger.Provides;
 @Module
 public final class DataModule {
 
-    private static final String PREFS_NAME = "infinumSecureStorage";
+    private static final String PREFS_NAME = "diplomskiSecureStorage";
+
+    public static final int DATABASE_VERSION = 1;
+    public static final String DATABASE_NAME = "task.db";
 
     @Singleton
     @Provides
@@ -35,4 +40,11 @@ public final class DataModule {
         final String androidSecret = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ANDROID_ID);
         return new SecureSharedPreferences(context, context.getSharedPreferences(PREFS_NAME, 0), androidSecret);
     }
+
+    @Provides
+    @Singleton
+    DatabaseHelper provideDatabaseHelper(final TaskApplication application, final PreferenceRepository preferenceRepository) {
+        return new DatabaseHelperImpl(application, DATABASE_NAME, DATABASE_VERSION, preferenceRepository);
+    }
+
 }

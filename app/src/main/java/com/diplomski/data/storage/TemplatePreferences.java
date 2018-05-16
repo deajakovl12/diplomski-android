@@ -4,13 +4,16 @@ import android.content.SharedPreferences;
 
 public final class TemplatePreferences implements PreferenceRepository {
 
-    private static final String KEY_USER_ID = "key_user_id";
-
     private static final String KEY_APY_KEY = "key_api_key";
+
+    private static final String KEY_LAST_RECORD_ID = "key_last_record_id";
 
     private static final String EMPTY_STRING = "";
 
     private static final long EMPTY_USER_ID = 0;
+
+    private static final String KEY_USER_ID = "key_user_id";
+
 
 
     private final SharedPreferences secureDelegate;
@@ -43,5 +46,15 @@ public final class TemplatePreferences implements PreferenceRepository {
     public String getApyKey() {
         return secureDelegate.getString(KEY_APY_KEY, EMPTY_STRING);
 
+    }
+
+    @Override
+    public void setLastRecordId(String recordId) {
+        secureDelegate.edit().putString(KEY_LAST_RECORD_ID, recordId).apply();
+    }
+
+    @Override
+    public String getLastRecordId() {
+        return secureDelegate.getString(KEY_LAST_RECORD_ID, EMPTY_STRING);
     }
 }

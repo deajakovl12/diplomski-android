@@ -1,16 +1,19 @@
 package com.diplomski.ui.home;
 
+
 import com.diplomski.R;
 import com.diplomski.data.api.converter.MovieAPIConverter;
-import com.diplomski.domain.model.MovieInfo;
+import com.diplomski.data.api.models.response.MovieApiResponse;
+import com.diplomski.domain.model.FullRecordingInfo;
+import com.diplomski.domain.model.RecordInfo;
 import com.diplomski.domain.usecase.MovieUseCase;
+import com.diplomski.domain.usecase.RecordUseCase;
 import com.diplomski.manager.StringManager;
 import com.diplomski.ui.base.presenter.BasePresenter;
 
 import java.util.List;
 
 import javax.inject.Named;
-
 
 import io.reactivex.Scheduler;
 import timber.log.Timber;
@@ -33,14 +36,18 @@ public final class HomePresenterImpl extends BasePresenter implements HomePresen
 
     private final StringManager stringManager;
 
+    private final RecordUseCase recordUseCase;
+
     public HomePresenterImpl(@Named(SUBSCRIBE_SCHEDULER) final Scheduler subscribeScheduler,
                              @Named(OBSERVE_SCHEDULER) final Scheduler observeScheduler, final MovieUseCase movieUseCase,
-                             final MovieAPIConverter movieAPIConverter, final StringManager stringManager) {
+                             final MovieAPIConverter movieAPIConverter, final StringManager stringManager,
+                             final RecordUseCase recordUseCase) {
         this.subscribeScheduler = subscribeScheduler;
         this.observeScheduler = observeScheduler;
         this.movieUseCase = movieUseCase;
         this.movieAPIConverter = movieAPIConverter;
         this.stringManager = stringManager;
+        this.recordUseCase = recordUseCase;
     }
 
     @Override
@@ -52,10 +59,15 @@ public final class HomePresenterImpl extends BasePresenter implements HomePresen
     public void getMovieInfo() {
         if (view != null) {
             addDisposable(movieUseCase.getMovieInfo()
-                                      .map(movieAPIConverter::convertToMovieInfo)
-                                      .subscribeOn(subscribeScheduler)
-                                      .observeOn(observeScheduler)
-                                      .subscribe(this::onGetMovieInfoSuccess, this::onGetMovieInfoFailure));
+                    .subscribeOn(subscribeScheduler)
+                    .observeOn(observeScheduler)
+                    .subscribe(this::onGetMovieInfoSuccess, this::onGetMovieInfoFailure));
+        }
+    }
+
+    private void onGetMovieInfoSuccess(MovieApiResponse movieApiResponses) {
+        if (view != null) {
+            view.showData(movieApiResponses);
         }
     }
 
@@ -63,9 +75,45 @@ public final class HomePresenterImpl extends BasePresenter implements HomePresen
         Timber.e(stringManager.getString(R.string.fetch_movie_info_error), throwable);
     }
 
-    private void onGetMovieInfoSuccess(final List<MovieInfo> movieInfo) {
+    private void onGetMovieInfoSuccess(final List<MovieApiResponse> movieInfo) {
         if (view != null) {
-            view.showData(movieInfo);
+            // view.showData(movieInfo);
         }
+    }
+
+    @Override
+    public void saveFullRecordToDb(FullRecordingInfo fullRecordingInfo) {
+        addDisposable(recordUseCase.addFullRecord(fullRecordingInfo)
+                .subscribeOn(subscribeScheduler)
+                .observeOn(observeScheduler)
+                .subscribe(this::onAddNewFullRecordSuccess, this::onNewFullRecordFailure));
+    }
+
+    private void onNewFullRecordFailure(Throwable throwable) {
+        Timber.e(throwable.getMessage());
+
+    }
+
+    private void onAddNewFullRecordSuccess() {
+        if (view != null) {
+            view.recordingStarted();
+        }
+    }
+
+    @Override
+    public void saveRecordToDb(RecordInfo recordInfo, double distance) {
+        addDisposable(recordUseCase.addNewRecord(recordInfo, distance)
+                .subscribeOn(subscribeScheduler)
+                .observeOn(observeScheduler)
+                .subscribe(this::onAddNewRecordSuccess, this::onNewRecordFailure));
+    }
+
+    private void onAddNewRecordSuccess() {
+        Timber.e("record added");
+    }
+
+
+    private void onNewRecordFailure(Throwable throwable) {
+        Timber.e(throwable.getMessage());
     }
 }

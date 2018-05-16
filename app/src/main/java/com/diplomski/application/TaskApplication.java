@@ -4,6 +4,7 @@ import android.app.Application;
 
 import com.diplomski.injection.ComponentFactory;
 import com.diplomski.injection.component.ApplicationComponent;
+import com.facebook.stetho.Stetho;
 
 import timber.log.Timber;
 
@@ -18,6 +19,8 @@ public final class TaskApplication extends Application {
         applicationComponent = ComponentFactory.createApplicationComponent(this);
         applicationComponent.inject(this);
         Timber.plant(new Timber.DebugTree());
+        Stetho.initializeWithDefaults(this);
+
     }
 
     public ApplicationComponent getApplicationComponent() {

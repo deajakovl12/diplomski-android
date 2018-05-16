@@ -7,47 +7,60 @@ import java.util.ArrayList;
 
 public final class MovieApiResponse {
 
-    @SerializedName("title")
-    String title;
+    @SerializedName("location")
+    Location location;
 
-    @SerializedName("image")
-    String image;
+    @SerializedName("accuracy")
+    double accuracy;
 
-    @SerializedName("rating")
-    float rating;
+    public class Location{
 
-    @SerializedName("releaseYear")
-    int releaseYear;
+        @SerializedName("lat")
+        double lat;
+        @SerializedName("lng")
+        double lng;
 
-    @SerializedName("genre")
-    ArrayList<String> genre;
+        public Location(double lat, double lng) {
+            this.lat = lat;
+            this.lng = lng;
+        }
 
-    public MovieApiResponse(String title, String image, float rating, int releaseYear, ArrayList<String> genre) {
-        this.title = title;
-        this.image = image;
-        this.rating = rating;
-        this.releaseYear = releaseYear;
-        this.genre = genre;
+        public double getLat() {
+            return lat;
+        }
+
+        public void setLat(double lat) {
+            this.lat = lat;
+        }
+
+        public double getLng() {
+            return lng;
+        }
+
+        public void setLng(double lng) {
+            this.lng = lng;
+        }
     }
 
-    public String getTitle() {
-        return title;
+    public MovieApiResponse(Location location, double accuracy) {
+        this.location = location;
+        this.accuracy = accuracy;
     }
 
-    public String getImage() {
-        return image;
+    public Location getLocation() {
+        return location;
     }
 
-    public float getRating() {
-        return rating;
+    public void setLocation(Location location) {
+        this.location = location;
     }
 
-    public int getReleaseYear() {
-        return releaseYear;
+    public double getAccuracy() {
+        return accuracy;
     }
 
-    public ArrayList<String> getGenre() {
-        return genre;
+    public void setAccuracy(double accuracy) {
+        this.accuracy = accuracy;
     }
 }
 

@@ -1,11 +1,12 @@
 package com.diplomski.ui.home;
 
-import com.diplomski.domain.model.MovieInfo;
 
-import java.util.List;
-
+import com.diplomski.data.api.models.response.MovieApiResponse;
 
 public interface HomeView {
 
-    void showData(List<MovieInfo> movieInfo);
+    void showData(MovieApiResponse movieInfo);
+
+    void recordingStarted();
+
 }

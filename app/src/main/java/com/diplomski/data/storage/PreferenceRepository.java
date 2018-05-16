@@ -10,4 +10,8 @@ public interface PreferenceRepository {
 
     long getUserId();
 
+    void setLastRecordId(String recordId);
+
+    String getLastRecordId();
+
 }

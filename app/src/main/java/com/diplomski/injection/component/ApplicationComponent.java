@@ -4,9 +4,12 @@ import com.diplomski.application.TaskApplication;
 import com.diplomski.data.api.converter.MovieAPIConverter;
 import com.diplomski.data.service.NetworkService;
 import com.diplomski.data.storage.TemplatePreferences;
+import com.diplomski.data.storage.database.DatabaseHelper;
 import com.diplomski.device.ApplicationInformation;
 import com.diplomski.device.DeviceInformation;
+import com.diplomski.domain.usecase.LoginUseCase;
 import com.diplomski.domain.usecase.MovieUseCase;
+import com.diplomski.domain.usecase.RecordUseCase;
 import com.diplomski.injection.module.ApiModule;
 import com.diplomski.injection.module.ApplicationModule;
 import com.diplomski.injection.module.DataModule;
@@ -77,4 +80,10 @@ public interface ApplicationComponent extends ApplicationComponentInjects {
     TemplatePreferences getTemplatePreferences();
 
     NetworkService getNetworkService();
+
+    DatabaseHelper getDatabaseHelper();
+
+    RecordUseCase getRecordUseCase();
+
+    LoginUseCase getLoginUseCase();
 }
