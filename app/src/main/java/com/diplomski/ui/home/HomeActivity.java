@@ -8,20 +8,26 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.location.Location;
 import android.location.LocationManager;
+import android.media.Image;
+import android.media.ImageReader;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.HandlerThread;
 import android.provider.Settings;
 import android.util.Base64;
 import android.util.Log;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
-
 
 import com.diplomski.R;
 import com.diplomski.data.api.models.response.LoginApiResponse;
 import com.diplomski.data.api.models.response.MovieApiResponse;
+import com.diplomski.device.Camera;
 import com.diplomski.device.ForegroundService;
 import com.diplomski.domain.model.FullRecordingInfo;
 import com.diplomski.domain.model.RecordInfo;
@@ -36,6 +42,7 @@ import com.karumi.dexter.listener.multi.MultiplePermissionsListener;
 import com.simplify.ink.InkView;
 
 import java.io.ByteArrayOutputStream;
+import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -86,12 +93,23 @@ public class HomeActivity extends BaseActivity implements HomeView {
     @BindView(R.id.login_user_name)
     TextView txtUserFirsNameLastName;
 
+    @BindView(R.id.image_taken)
+    ImageView takenImage;
+
 
     BroadcastReceiver broadcastReceiverTimer = null;
     BroadcastReceiver broadcastReceiverLocation = null;
 
     boolean started = false;
     private boolean isSignatureAdded = false;
+    private boolean isImageTaken = false;
+
+    private Camera mCamera;
+    private Handler mCameraHandler;
+    private HandlerThread mCameraThread;
+
+    private String saveTakenImageBase64;
+
 
     public static Intent createIntent(final Context context, final LoginApiResponse loginApiResponse) {
         return new Intent(context, HomeActivity.class).putExtra(LOGIN_EXTRA, loginApiResponse);
@@ -108,7 +126,7 @@ public class HomeActivity extends BaseActivity implements HomeView {
 
         loginApiResponse = getIntent().getParcelableExtra(LOGIN_EXTRA);
 
-        txtUserFirsNameLastName.setText(loginApiResponse.id + " " + loginApiResponse.ime + " " +loginApiResponse.prezime + " " + loginApiResponse.adresa + " " +loginApiResponse.username + " " +loginApiResponse.password + " " +loginApiResponse.isAdmin);
+        txtUserFirsNameLastName.setText(loginApiResponse.id + " " + loginApiResponse.ime + " " + loginApiResponse.prezime + " " + loginApiResponse.adresa + " " + loginApiResponse.username + " " + loginApiResponse.password + " " + loginApiResponse.isAdmin);
 //        checkLocationPermission();
 
         signatureCanvas.setColor(getResources().getColor(android.R.color.black));
@@ -116,6 +134,46 @@ public class HomeActivity extends BaseActivity implements HomeView {
         signatureCanvas.setMaxStrokeWidth(MAXSTROKEWIDTH);
         setOnEditorActionListeners();
 
+        mCameraThread = new HandlerThread("CameraBackground");
+        mCameraThread.start();
+        mCameraHandler = new Handler(mCameraThread.getLooper());
+
+        // Camera code is complicated, so we've shoved it all in this closet class for you.
+        mCamera = Camera.getInstance();
+        mCamera.initializeCamera(this, mCameraHandler, mOnImageAvailableListener);
+
+    }
+
+
+    /**
+     * Listener for new camera images.
+     */
+    private ImageReader.OnImageAvailableListener mOnImageAvailableListener =
+            reader -> {
+                Image image = reader.acquireLatestImage();
+                // get image bytes
+                ByteBuffer imageBuf = image.getPlanes()[0].getBuffer();
+                final byte[] imageBytes = new byte[imageBuf.remaining()];
+                imageBuf.get(imageBytes);
+                image.close();
+                HomeActivity.this.runOnUiThread(() -> onPictureTaken(imageBytes));
+            };
+
+    /**
+     * Upload image data to Firebase as a doorbell event.
+     */
+
+    private void onPictureTaken(final byte[] imageBytes) {
+        if (imageBytes != null) {
+//
+            Log.e("IAGEMGMEEGM", imageBytes.toString() + " a");
+
+            Bitmap bmp = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
+            takenImage.setImageBitmap(bmp);
+            isImageTaken = true;
+            saveTakenImageBase64 = Base64.encodeToString(imageBytes, Base64.DEFAULT);
+            Log.e("Signature base64", saveTakenImageBase64);
+        }
     }
 
     private void setOnEditorActionListeners() {
@@ -179,6 +237,11 @@ public class HomeActivity extends BaseActivity implements HomeView {
         isSignatureAdded = false;
     }
 
+    @OnClick(R.id.button_slika)
+    public void takePicture() {
+        mCamera.takePicture();
+    }
+
 
     @OnClick(R.id.button_zapocni)
     public void startFollow() {
@@ -198,7 +261,7 @@ public class HomeActivity extends BaseActivity implements HomeView {
                 fullRecordingInfo.dateStart = new SimpleDateFormat("dd.MM.yyyy - HH:mm:ss:SS", Locale.getDefault()).format(new Date());
                 fullRecordingInfo.distanceTraveled = 0;
                 //TODO add image
-                fullRecordingInfo.image = "";
+                fullRecordingInfo.image = saveTakenImageBase64;
 
                 fullRecordingInfo.userId = String.valueOf(loginApiResponse.id);
                 fullRecordingInfo.signature = encodedImage;
@@ -292,6 +355,10 @@ public class HomeActivity extends BaseActivity implements HomeView {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        mCamera.shutDown();
+
+        mCameraThread.quitSafely();
+
         if (broadcastReceiverTimer != null) {
             unregisterReceiver(broadcastReceiverTimer);
         }
