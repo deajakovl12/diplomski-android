@@ -37,7 +37,7 @@ public class HomeActivity extends BaseActivity implements HomeView {
 
     private static final String TAG = "GpsActivity";
 
-    public static final int UART_BAUD = 9600;
+    public static final int UART_BAUD = 4800;
     public static final float ACCURACY = 2.5f; // From GPS datasheet
 
     private LocationManager mLocationManager;
@@ -74,6 +74,7 @@ public class HomeActivity extends BaseActivity implements HomeView {
                     0, 0, mLocationListener);
             mLocationManager.registerGnssStatusCallback(mStatusCallback);
             mLocationManager.addNmeaListener(mMessageListener);
+            Log.w(TAG, "OPEMN UART");
         } catch (IOException e) {
             Log.w(TAG, "Unable to open GPS UART", e);
         }
@@ -84,7 +85,7 @@ public class HomeActivity extends BaseActivity implements HomeView {
     protected void onResume() {
         super.onResume();
         presenter.setView(this);
-        presenter.getMovieInfo();
+        //presenter.getMovieInfo();
     }
 
     @Override
@@ -141,25 +142,43 @@ public class HomeActivity extends BaseActivity implements HomeView {
         }
 
         @Override
-        public void onStatusChanged(String provider, int status, Bundle extras) { }
+        public void onStatusChanged(String provider, int status, Bundle extras) {
+            Log.v(TAG, "onStatusChanged: " + provider);
+
+        }
 
         @Override
-        public void onProviderEnabled(String provider) { }
+        public void onProviderEnabled(String provider) {
+            Log.v(TAG, "onProviderEnabled: " + provider);
+
+        }
 
         @Override
-        public void onProviderDisabled(String provider) { }
+        public void onProviderDisabled(String provider) {
+            Log.v(TAG, "onProviderDisabled: " + provider);
+
+        }
     };
 
     /** Report satellite status */
     private GnssStatus.Callback mStatusCallback = new GnssStatus.Callback() {
         @Override
-        public void onStarted() { }
+        public void onStarted() {
+            Log.v(TAG, "onStarted: " + "a");
+
+        }
 
         @Override
-        public void onStopped() { }
+        public void onStopped() {
+            Log.v(TAG, "onStopped: " + "a");
+
+        }
 
         @Override
-        public void onFirstFix(int ttffMillis) { }
+        public void onFirstFix(int ttffMillis) {
+            Log.v(TAG, "onFirstFix: " + "a");
+
+        }
 
         @Override
         public void onSatelliteStatusChanged(GnssStatus status) {
