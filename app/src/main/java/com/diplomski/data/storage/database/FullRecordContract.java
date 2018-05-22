@@ -10,8 +10,8 @@ public class FullRecordContract {
                     FullRecordEntry.START_DATE + " TEXT," +
                     FullRecordEntry.DISTANCE_TRAVELLED + " REAL, " +
                     FullRecordEntry.SENT_TO_SERVER + " INTEGER, " +
-                    FullRecordEntry.IMAGE + " STRING, " +
-                    FullRecordEntry.SIGNATURE + " STRING)";
+                    FullRecordEntry.IMAGE + " TEXT, " +
+                    FullRecordEntry.SIGNATURE + " TEXT)";
 
     public static final String SQL_DELETE_ENTRIES =
             "DROP TABLE IF EXISTS " + FullRecordEntry.TABLE_NAME;

@@ -5,6 +5,7 @@ import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Bitmap;
@@ -13,10 +14,13 @@ import android.location.Location;
 import android.location.LocationManager;
 import android.media.Image;
 import android.media.ImageReader;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.provider.Settings;
+import android.support.v4.content.ContextCompat;
 import android.util.Base64;
 import android.util.Log;
 import android.widget.Button;
@@ -126,12 +130,16 @@ public class HomeActivity extends BaseActivity implements HomeView {
 
         loginApiResponse = getIntent().getParcelableExtra(LOGIN_EXTRA);
 
-        txtUserFirsNameLastName.setText(loginApiResponse.id + " " + loginApiResponse.ime + " " + loginApiResponse.prezime + " " + loginApiResponse.adresa + " " + loginApiResponse.username + " " + loginApiResponse.password + " " + loginApiResponse.isAdmin);
+        txtUserFirsNameLastName.setText(String.format("%d %s %s %s %s %s %d", loginApiResponse.id, loginApiResponse.ime, loginApiResponse.prezime, loginApiResponse.adresa, loginApiResponse.username, loginApiResponse.password, loginApiResponse.isAdmin));
 //        checkLocationPermission();
 
-        signatureCanvas.setColor(getResources().getColor(android.R.color.black));
+        signatureCanvas.setColor(ContextCompat.getColor(this, android.R.color.black));
         signatureCanvas.setMinStrokeWidth(MINSTROKEWIDTH);
         signatureCanvas.setMaxStrokeWidth(MAXSTROKEWIDTH);
+        signatureCanvas.setOnTouchListener((v, event) -> {
+            v.getParent().requestDisallowInterceptTouchEvent(true);
+            return false;
+        });
         setOnEditorActionListeners();
 
         mCameraThread = new HandlerThread("CameraBackground");
@@ -247,7 +255,7 @@ public class HomeActivity extends BaseActivity implements HomeView {
     public void startFollow() {
 
         if (!started) {
-            if (isSignatureAdded) {
+            if (isSignatureAdded && isImageTaken) {
                 Bitmap canvasImage = signatureCanvas.getBitmap(getResources().getColor(android.R.color.white));
                 ByteArrayOutputStream bs = new ByteArrayOutputStream();
                 canvasImage.compress(Bitmap.CompressFormat.JPEG, COMPRESS_QUALITY, bs);
@@ -349,7 +357,37 @@ public class HomeActivity extends BaseActivity implements HomeView {
     protected void onResume() {
         super.onResume();
         presenter.setView(this);
+        presenter.checkDataForUpload();
         //presenter.getMovieInfo();
+    }
+
+    private boolean isNetworkAvailable() {
+        ConnectivityManager connectivityManager
+                = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+        return activeNetworkInfo != null;
+    }
+
+    private void createAlertDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Ne poslana snimanja");
+        builder.setCancelable(false);
+        builder.setMessage("Postoje snimanja koja nisu poslana, potrebno je poslati snimanja kako bi imali uvid u njih.");
+        builder.setPositiveButton(
+                "Pošalji",
+                (dialog, id) -> {
+                    if(isNetworkAvailable()) {
+                        presenter.uploadRecordsToServer();
+                    }else{
+                        Toast.makeText(HomeActivity.this, "Nema internet konekcije, ne mogu poslati podatke!", Toast.LENGTH_SHORT).show();
+                    }
+                });
+        builder.setNegativeButton(
+                "Ne sada",
+                (dialog, id) -> dialog.dismiss());
+
+        AlertDialog alert11 = builder.create();
+        alert11.show();
     }
 
     @Override
@@ -393,5 +431,14 @@ public class HomeActivity extends BaseActivity implements HomeView {
     @Override
     public void recordingStarted() {
         Toast.makeText(this, "Recording Started!", Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void needDataUpload(Boolean notSent) {
+        if (notSent) {
+            createAlertDialog();
+        } else {
+            Timber.e("OK");
+        }
     }
 }

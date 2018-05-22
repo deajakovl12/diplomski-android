@@ -3,16 +3,22 @@ package com.diplomski.data.storage.database;
 
 import android.content.ContentValues;
 import android.content.Context;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
-
+import com.diplomski.data.api.models.request.FullRecordInfoRequest;
 import com.diplomski.data.storage.PreferenceRepository;
 import com.diplomski.domain.model.FullRecordingInfo;
 import com.diplomski.domain.model.RecordInfo;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import io.reactivex.Completable;
 import io.reactivex.Single;
+import io.reactivex.SingleSource;
+import timber.log.Timber;
 
 public class DatabaseHelperImpl extends SQLiteOpenHelper implements DatabaseHelper {
 
@@ -80,6 +86,26 @@ public class DatabaseHelperImpl extends SQLiteOpenHelper implements DatabaseHelp
     }
 
     @Override
+    public Single<Boolean> checkIfDataUploadNeeded() {
+        return Single.defer(() -> {
+            SQLiteDatabase db = getReadableDatabase();
+            String[] projection = {
+                    FullRecordContract.FullRecordEntry.SENT_TO_SERVER
+            };
+            Cursor cursor;
+            cursor = db.query(
+                    FullRecordContract.FullRecordEntry.TABLE_NAME, projection, FullRecordContract.FullRecordEntry.SENT_TO_SERVER + "=1", null, null, null, null);
+
+            boolean notSent = false;
+            while (cursor.moveToNext()) {
+                notSent = true;
+            }
+            cursor.close();
+            return Single.just(notSent);
+        });
+    }
+
+    @Override
     public Completable addNewRecord(RecordInfo recordInfo, double distance) {
         return Completable.defer(() -> {
             ContentValues values = new ContentValues();
@@ -104,6 +130,71 @@ public class DatabaseHelperImpl extends SQLiteOpenHelper implements DatabaseHelp
             db.update(FullRecordContract.FullRecordEntry.TABLE_NAME, values, selection, selectionArgs);
 
             return Completable.complete();
+        });
+    }
+
+    @Override
+    public SingleSource<List<FullRecordInfoRequest>> getAllRecordsThatNeedUpload() {
+        return Single.defer(() -> {
+
+            SQLiteDatabase db = getReadableDatabase();
+            String[] projection = {
+                    FullRecordContract.FullRecordEntry.ID_FULL_RECORD_ID_DATE,
+                    FullRecordContract.FullRecordEntry.ID_USER,
+                    FullRecordContract.FullRecordEntry.START_DATE,
+                    FullRecordContract.FullRecordEntry.DISTANCE_TRAVELLED,
+                    FullRecordContract.FullRecordEntry.IMAGE,
+                    FullRecordContract.FullRecordEntry.SIGNATURE
+            };
+            Cursor cursor;
+            cursor = db.query(
+                    FullRecordContract.FullRecordEntry.TABLE_NAME, projection, FullRecordContract.FullRecordEntry.SENT_TO_SERVER + "=1", null, null, null, null);
+
+            List<FullRecordInfoRequest> fullRecordInfoRequestList = new ArrayList<>();
+            while (cursor.moveToNext()) {
+                FullRecordInfoRequest fullRecordInfoRequest = new FullRecordInfoRequest(
+                        cursor.getString(0),
+                        cursor.getString(1),
+                        cursor.getString(2),
+                        cursor.getDouble(3),
+                        cursor.getString(4),
+                        cursor.getString(5)
+                );
+                fullRecordInfoRequestList.add(fullRecordInfoRequest);
+            }
+            cursor.close();
+
+            String[] projectionOneRecord = {
+                    RecordContract.RecordEntry.ID_FULL_RECORD,
+                    RecordContract.RecordEntry.LAT,
+                    RecordContract.RecordEntry.LNG,
+                    RecordContract.RecordEntry.SPEED,
+                    RecordContract.RecordEntry.SPEED_LIMIT,
+                    RecordContract.RecordEntry.DISTANCE_FROM_LAST_LOCATION,
+                    RecordContract.RecordEntry.CURRENT_DATE,
+                    RecordContract.RecordEntry.ID_RECORD
+            };
+            for (FullRecordInfoRequest fullRecordInfoRequest : fullRecordInfoRequestList) {
+                Cursor cursorOneRecord = db.query(
+                        RecordContract.RecordEntry.TABLE_NAME, projectionOneRecord, RecordContract.RecordEntry.ID_FULL_RECORD + "=?", new String[]{fullRecordInfoRequest.fullRecordIdDB}, null, null, null);
+                while (cursorOneRecord.moveToNext()) {
+                    FullRecordInfoRequest.OneRecordInfoRequest oneRecordInfoRequest =
+                            new FullRecordInfoRequest.OneRecordInfoRequest(
+                                    cursorOneRecord.getString(0),
+                                    cursorOneRecord.getDouble(1),
+                                    cursorOneRecord.getDouble(2),
+                                    cursorOneRecord.getDouble(3),
+                                    cursorOneRecord.getDouble(4),
+                                    cursorOneRecord.getString(6),
+                                    cursorOneRecord.getDouble(5),
+                                    cursorOneRecord.getInt(7)
+                            );
+                    fullRecordInfoRequest.addOneRecordToList(oneRecordInfoRequest);
+                }
+                cursorOneRecord.close();
+            }
+
+            return Single.just(fullRecordInfoRequestList);
         });
     }
 }

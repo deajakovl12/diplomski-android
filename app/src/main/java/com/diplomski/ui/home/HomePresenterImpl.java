@@ -3,6 +3,7 @@ package com.diplomski.ui.home;
 
 import com.diplomski.R;
 import com.diplomski.data.api.converter.MovieAPIConverter;
+import com.diplomski.data.api.models.request.FullRecordInfoRequest;
 import com.diplomski.data.api.models.response.MovieApiResponse;
 import com.diplomski.domain.model.FullRecordingInfo;
 import com.diplomski.domain.model.RecordInfo;
@@ -115,5 +116,45 @@ public final class HomePresenterImpl extends BasePresenter implements HomePresen
 
     private void onNewRecordFailure(Throwable throwable) {
         Timber.e(throwable.getMessage());
+    }
+
+    @Override
+    public void checkDataForUpload() {
+        addDisposable(recordUseCase.checkIfDataUploadNeeded()
+                .subscribeOn(subscribeScheduler)
+                .observeOn(observeScheduler)
+                .subscribe(this::onCheckSuccess, this::onCheckFailure));
+    }
+
+    private void onCheckSuccess(Boolean notSent) {
+        if (view != null) {
+            view.needDataUpload(notSent);
+        }
+    }
+
+    private void onCheckFailure(Throwable throwable) {
+        Timber.e(stringManager.getString(R.string.fetch_check_error), throwable.getMessage());
+    }
+
+    @Override
+    public void uploadRecordsToServer() {
+        addDisposable(recordUseCase.getAllRecordsThatNeedUpload()
+                .subscribeOn(subscribeScheduler)
+                .observeOn(observeScheduler)
+                .subscribe(this::onGetAllRecordsSuccess, this::onGetAllRecordsFailure));
+    }
+
+    private void onGetAllRecordsFailure(Throwable throwable) {
+        Timber.e(stringManager.getString(R.string.fetch_all_record_info_erorr) + throwable.getMessage());
+
+    }
+
+    private void onGetAllRecordsSuccess(List<FullRecordInfoRequest> fullRecordInfoRequests) {
+        //TODO HERE UPLOAD THIS DATA TO SERVER AND AFTER IT IS UPLOADED CHANGE ALL SERVER UPLOAD TO 2!
+        for (FullRecordInfoRequest fullRecordInfoRequest : fullRecordInfoRequests) {
+            for (FullRecordInfoRequest.OneRecordInfoRequest oneRecordInfoRequest : fullRecordInfoRequest.oneRecordList) {
+                Timber.e(oneRecordInfoRequest.idFullrecord + "----------" + oneRecordInfoRequest.oneRecordId + "++++++" + oneRecordInfoRequest.distanceFromLast);
+            }
+        }
     }
 }
