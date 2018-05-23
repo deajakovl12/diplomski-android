@@ -19,7 +19,7 @@ public final class DataModule {
 
     private static final String PREFS_NAME = "diplomskiSecureStorage";
 
-    public static final int DATABASE_VERSION = 1;
+    public static final int DATABASE_VERSION = 2;
     public static final String DATABASE_NAME = "task.db";
 
     @Singleton

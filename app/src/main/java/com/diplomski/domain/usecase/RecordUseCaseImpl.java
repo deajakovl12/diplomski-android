@@ -55,9 +55,8 @@ public class RecordUseCaseImpl implements RecordUseCase{
     }
 
     @Override
-    public Single<Response<Void>> uploadRecordsToServer() {
-//        return Single.defer(() -> networkService.upload)
-        return null;
+    public Single<Response<Void>> uploadRecordsToServer(List<FullRecordInfoRequest> fullRecordInfoRequests) {
+        return Single.defer(() -> networkService.uploadRecordsToServer(fullRecordInfoRequests));
     }
 
     @Override

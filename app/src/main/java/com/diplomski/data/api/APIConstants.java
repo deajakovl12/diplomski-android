@@ -10,5 +10,7 @@ public interface APIConstants {
 
     String PATH_LOGIN = "users/login";
 
+    String PATH_UPLOAD_RECORDS = "records/addRecord";
+
 
 }

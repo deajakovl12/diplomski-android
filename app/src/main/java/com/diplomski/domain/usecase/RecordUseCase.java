@@ -24,7 +24,7 @@ public interface RecordUseCase {
 
     Completable addFullRecord(FullRecordingInfo fullRecordingInfo);
 
-    Single<Response<Void>> uploadRecordsToServer();
+    Single<Response<Void>> uploadRecordsToServer(List<FullRecordInfoRequest> fullRecordInfoRequests);
 
     Single<List<FullRecordInfoRequest>>  getAllRecordsThatNeedUpload();
 }

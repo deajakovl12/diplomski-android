@@ -171,8 +171,7 @@ public class DatabaseHelperImpl extends SQLiteOpenHelper implements DatabaseHelp
                     RecordContract.RecordEntry.SPEED,
                     RecordContract.RecordEntry.SPEED_LIMIT,
                     RecordContract.RecordEntry.DISTANCE_FROM_LAST_LOCATION,
-                    RecordContract.RecordEntry.CURRENT_DATE,
-                    RecordContract.RecordEntry.ID_RECORD
+                    RecordContract.RecordEntry.TABLE_NAME + "." +RecordContract.RecordEntry.CURRENT_DATE,
             };
             for (FullRecordInfoRequest fullRecordInfoRequest : fullRecordInfoRequestList) {
                 Cursor cursorOneRecord = db.query(
@@ -186,9 +185,7 @@ public class DatabaseHelperImpl extends SQLiteOpenHelper implements DatabaseHelp
                                     cursorOneRecord.getDouble(3),
                                     cursorOneRecord.getDouble(4),
                                     cursorOneRecord.getString(6),
-                                    cursorOneRecord.getDouble(5),
-                                    cursorOneRecord.getInt(7)
-                            );
+                                    cursorOneRecord.getDouble(5));
                     fullRecordInfoRequest.addOneRecordToList(oneRecordInfoRequest);
                 }
                 cursorOneRecord.close();

@@ -1,5 +1,6 @@
 package com.diplomski.data.service;
 
+import com.diplomski.data.api.models.request.FullRecordInfoRequest;
 import com.diplomski.data.api.models.request.LoginRequest;
 import com.diplomski.data.api.models.response.LoginApiResponse;
 import com.diplomski.data.api.models.response.MovieApiResponse;
@@ -7,12 +8,15 @@ import com.diplomski.data.api.models.response.MovieApiResponse;
 import java.util.List;
 
 import io.reactivex.Single;
+import io.reactivex.SingleSource;
+import retrofit2.Response;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
 import retrofit2.http.POST;
 
 import static com.diplomski.data.api.APIConstants.PATH_LOGIN;
 import static com.diplomski.data.api.APIConstants.PATH_MOVIES;
+import static com.diplomski.data.api.APIConstants.PATH_UPLOAD_RECORDS;
 
 
 public interface TemplateAPI {
@@ -23,6 +27,9 @@ public interface TemplateAPI {
 
     @POST(PATH_LOGIN)
     Single<LoginApiResponse> loginUser(@Body LoginRequest loginRequest);
+
+    @POST(PATH_UPLOAD_RECORDS)
+    Single<Response<Void>> uploadRecordsToServer(@Body List<FullRecordInfoRequest> fullRecordInfoRequests);
 
 //    @Headers(CONTENT_TYPE_HEADER)
 //    @POST(PATH_LOGIN)

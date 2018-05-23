@@ -17,6 +17,7 @@ import java.util.List;
 import javax.inject.Named;
 
 import io.reactivex.Scheduler;
+import retrofit2.Response;
 import timber.log.Timber;
 
 import static com.diplomski.injection.module.ThreadingModule.OBSERVE_SCHEDULER;
@@ -151,10 +152,27 @@ public final class HomePresenterImpl extends BasePresenter implements HomePresen
 
     private void onGetAllRecordsSuccess(List<FullRecordInfoRequest> fullRecordInfoRequests) {
         //TODO HERE UPLOAD THIS DATA TO SERVER AND AFTER IT IS UPLOADED CHANGE ALL SERVER UPLOAD TO 2!
-        for (FullRecordInfoRequest fullRecordInfoRequest : fullRecordInfoRequests) {
-            for (FullRecordInfoRequest.OneRecordInfoRequest oneRecordInfoRequest : fullRecordInfoRequest.oneRecordList) {
-                Timber.e(oneRecordInfoRequest.idFullrecord + "----------" + oneRecordInfoRequest.oneRecordId + "++++++" + oneRecordInfoRequest.distanceFromLast);
-            }
-        }
+//        for (FullRecordInfoRequest fullRecordInfoRequest : fullRecordInfoRequests) {
+//            for (FullRecordInfoRequest.OneRecordInfoRequest oneRecordInfoRequest : fullRecordInfoRequest.oneRecordList) {
+//                Timber.e(oneRecordInfoRequest.idFullrecord + "----------" + oneRecordInfoRequest.currentDate);
+//            }
+//        }
+        uploadRecordsToServerOnline(fullRecordInfoRequests);
+    }
+
+    public void uploadRecordsToServerOnline(List<FullRecordInfoRequest> fullRecordInfoRequests) {
+        addDisposable(recordUseCase.uploadRecordsToServer(fullRecordInfoRequests)
+                .subscribeOn(subscribeScheduler)
+                .observeOn(observeScheduler)
+                .subscribe(this::onUploadRecordSuccess, this::onUploadRecordsFailure));
+    }
+
+    private void onUploadRecordSuccess(Response<Void> response) {
+        Timber.e("USPJEH" + response.isSuccessful() + " " + response.message());
+    }
+
+    private void onUploadRecordsFailure(Throwable throwable) {
+        Timber.e("NENE" + throwable.getMessage());
+
     }
 }
