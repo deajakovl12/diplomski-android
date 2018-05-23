@@ -168,11 +168,40 @@ public final class HomePresenterImpl extends BasePresenter implements HomePresen
     }
 
     private void onUploadRecordSuccess(Response<Void> response) {
-        Timber.e("USPJEH" + response.isSuccessful() + " " + response.message());
+        if(view != null){
+             if(response.isSuccessful()) {
+                 updateSentToServerFlag();
+             }else{
+                 view.resetAllToStart();
+                 view.showErroUploadMessage();
+             }
+        }
     }
 
     private void onUploadRecordsFailure(Throwable throwable) {
         Timber.e("NENE" + throwable.getMessage());
-
     }
+
+    public void updateSentToServerFlag() {
+        addDisposable(recordUseCase.updateRecordsSentToServer()
+                .subscribeOn(subscribeScheduler)
+                .observeOn(observeScheduler)
+                .subscribe(this::onUpdateSentToServerFlagSuccess, this::onUpdateSentToServerFlagFailure));
+    }
+
+    private void onUpdateSentToServerFlagSuccess(Boolean updated) {
+        if(view != null){
+            if(updated) {
+                view.resetAllToStart();
+            }else{
+                view.resetAllToStart();
+                view.showErroUploadMessage();
+            }
+        }
+    }
+
+    private void onUpdateSentToServerFlagFailure(Throwable throwable) {
+        Timber.e("FAIL UPDATE", throwable.getMessage());
+    }
+
 }

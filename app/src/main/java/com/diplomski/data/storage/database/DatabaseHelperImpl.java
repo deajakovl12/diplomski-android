@@ -63,18 +63,20 @@ public class DatabaseHelperImpl extends SQLiteOpenHelper implements DatabaseHelp
             values.put(FullRecordContract.FullRecordEntry.IMAGE, fullRecordingInfo.image);
             values.put(FullRecordContract.FullRecordEntry.SIGNATURE, fullRecordingInfo.signature);
 
+            int brojZadnjeg;
             if (preferenceRepository.getLastRecordId().equals("")) {
                 values.put(FullRecordContract.FullRecordEntry.ID_FULL_RECORD_ID_DATE, "1-" + fullRecordingInfo.dateStart);
+                brojZadnjeg = 1;
             } else {
                 String array[] = preferenceRepository.getLastRecordId().split("-");
-                int brojZadnjeg = Integer.parseInt(array[0]) + 1;
+                brojZadnjeg = Integer.parseInt(array[0]) + 1;
                 values.put(FullRecordContract.FullRecordEntry.ID_FULL_RECORD_ID_DATE, brojZadnjeg + "-" + fullRecordingInfo.dateStart);
 
             }
 
             long rowId = db.insert(FullRecordContract.FullRecordEntry.TABLE_NAME, null, values);
             if (rowId != -1) {
-                preferenceRepository.setLastRecordId(rowId + "-" + fullRecordingInfo.dateStart);
+                preferenceRepository.setLastRecordId(brojZadnjeg + "-" + fullRecordingInfo.dateStart);
             }
             return Completable.complete();
         });
@@ -171,7 +173,7 @@ public class DatabaseHelperImpl extends SQLiteOpenHelper implements DatabaseHelp
                     RecordContract.RecordEntry.SPEED,
                     RecordContract.RecordEntry.SPEED_LIMIT,
                     RecordContract.RecordEntry.DISTANCE_FROM_LAST_LOCATION,
-                    RecordContract.RecordEntry.TABLE_NAME + "." +RecordContract.RecordEntry.CURRENT_DATE,
+                    RecordContract.RecordEntry.TABLE_NAME + "." + RecordContract.RecordEntry.CURRENT_DATE,
             };
             for (FullRecordInfoRequest fullRecordInfoRequest : fullRecordInfoRequestList) {
                 Cursor cursorOneRecord = db.query(
@@ -192,6 +194,28 @@ public class DatabaseHelperImpl extends SQLiteOpenHelper implements DatabaseHelp
             }
 
             return Single.just(fullRecordInfoRequestList);
+        });
+    }
+
+    @Override
+    public Single<Boolean> updateRecordsSentToServer() {
+        return Single.defer(() -> {
+            try {
+                ContentValues values = new ContentValues();
+                SQLiteDatabase db = getReadableDatabase();
+
+                values.put(FullRecordContract.FullRecordEntry.SENT_TO_SERVER, 2);
+
+                String selection = FullRecordContract.FullRecordEntry.SENT_TO_SERVER + "=?";
+                String[] selectionArgs = {String.valueOf(1)};
+
+                db.update(FullRecordContract.FullRecordEntry.TABLE_NAME, values, selection, selectionArgs);
+                return Single.just(true);
+
+            } catch (Exception e) {
+                Timber.e(e.getMessage() + " GRESKA");
+                return Single.just(false);
+            }
         });
     }
 }

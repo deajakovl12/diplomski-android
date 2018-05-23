@@ -10,4 +10,8 @@ public interface HomeView {
     void recordingStarted();
 
     void needDataUpload(Boolean notSent);
+
+    void resetAllToStart();
+
+    void showErroUploadMessage();
 }

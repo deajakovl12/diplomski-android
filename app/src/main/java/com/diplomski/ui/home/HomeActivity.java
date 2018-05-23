@@ -226,6 +226,16 @@ public class HomeActivity extends BaseActivity implements HomeView {
 
     }
 
+    @Override
+    public void resetAllToStart(){
+        signatureCanvas.clear();
+        takenImage.setImageDrawable(null);
+        textView.setText("");
+        textViewLocation.setText("");
+        textViewDistance.setText("");
+        textViewSpeed.setText("");
+    }
+
     public void isLocationEnabled() {
         LocationManager locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
         if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
@@ -256,6 +266,8 @@ public class HomeActivity extends BaseActivity implements HomeView {
 
         if (!started) {
             if (isSignatureAdded && isImageTaken) {
+                isSignatureAdded = false;
+                isImageTaken = false;
                 Bitmap canvasImage = signatureCanvas.getBitmap(getResources().getColor(android.R.color.white));
                 ByteArrayOutputStream bs = new ByteArrayOutputStream();
                 canvasImage.compress(Bitmap.CompressFormat.JPEG, COMPRESS_QUALITY, bs);
@@ -284,20 +296,25 @@ public class HomeActivity extends BaseActivity implements HomeView {
                 registerBroadCastReceiverTimer();
                 registerBroadCastReceiverLocation();
             } else {
-                Toast.makeText(this, "ADD SIGNATURE!", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "POTPISITE SE I POSLIKAJTE KAO EVIDENCIJA!", Toast.LENGTH_SHORT).show();
             }
 
         } else {
             started = false;
             buttonStartStop.setText("Zapocni");
-            if (broadcastReceiverTimer != null) {
-                unregisterReceiver(broadcastReceiverTimer);
-            }
-            if (broadcastReceiverLocation != null) {
-                unregisterReceiver(broadcastReceiverLocation);
+            try {
+                if (broadcastReceiverTimer != null) {
+                    unregisterReceiver(broadcastReceiverTimer);
+                }
+                if (broadcastReceiverLocation != null) {
+                    unregisterReceiver(broadcastReceiverLocation);
+                }
+            }catch (Exception e){
+                Timber.e("VEC ZAUSTAVLJENI RECEIVERI");
             }
             startService(new Intent(HomeActivity.this, ForegroundService.class).setAction(Constants.ACTION.STOPFOREGROUND_ACTION));
 
+            createSnimanjeZavrseno();
         }
     }
 
@@ -335,7 +352,6 @@ public class HomeActivity extends BaseActivity implements HomeView {
                 textViewSpeed.setText(speed + " km/h");
 
 
-                //TODO HERE ALSO CALL UPDATE ON FULL RECORD (DISTANCE)
                 if (location != null) {
                     RecordInfo recordInfo = new RecordInfo();
                     recordInfo.currentDate = new SimpleDateFormat("dd.MM.yyyy - HH:mm:ss:SS", Locale.getDefault()).format(new Date());
@@ -343,7 +359,6 @@ public class HomeActivity extends BaseActivity implements HomeView {
                     recordInfo.lat = location.getLatitude();
                     recordInfo.lng = location.getLongitude();
                     recordInfo.speed = speed;
-                    //TODO CALL TO GET SPEED LIMIT FROM A ROAD
                     recordInfo.speedLimit = 0;
                     presenter.saveRecordToDb(recordInfo, distance);
                 }
@@ -390,6 +405,33 @@ public class HomeActivity extends BaseActivity implements HomeView {
         alert11.show();
     }
 
+
+    private void createSnimanjeZavrseno() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Snimanje završeno");
+        builder.setCancelable(false);
+        builder.setMessage("Da li želite poslati podatke snimanja? Ne poslani podaci ne ulaze u smanjenje vaše kazne!");
+        builder.setPositiveButton(
+                "Pošalji",
+                (dialog, id) -> {
+                    if(isNetworkAvailable()) {
+                        presenter.uploadRecordsToServer();
+                    }else{
+                        Toast.makeText(HomeActivity.this, "Nema internet konekcije, ne mogu poslati podatke!", Toast.LENGTH_SHORT).show();
+                        resetAllToStart();
+                    }
+                });
+        builder.setNegativeButton(
+                "Ne sada",
+                (dialog, id) -> {
+                    dialog.dismiss();
+                    resetAllToStart();
+                });
+
+        AlertDialog alert11 = builder.create();
+        alert11.show();
+    }
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
@@ -397,12 +439,17 @@ public class HomeActivity extends BaseActivity implements HomeView {
 
         mCameraThread.quitSafely();
 
-        if (broadcastReceiverTimer != null) {
-            unregisterReceiver(broadcastReceiverTimer);
-        }
+        try {
+            if (broadcastReceiverTimer != null) {
+                unregisterReceiver(broadcastReceiverTimer);
+            }
 
-        if (broadcastReceiverLocation != null) {
-            unregisterReceiver(broadcastReceiverLocation);
+
+            if (broadcastReceiverLocation != null) {
+                unregisterReceiver(broadcastReceiverLocation);
+            }
+        }catch (Exception e){
+            Timber.e("vec zaustavljen receiver!");
         }
         startService(new Intent(HomeActivity.this, ForegroundService.class).setAction(Constants.ACTION.STOPFOREGROUND_ACTION));
 
@@ -440,5 +487,10 @@ public class HomeActivity extends BaseActivity implements HomeView {
         } else {
             Timber.e("OK");
         }
+    }
+
+    @Override
+    public void showErroUploadMessage() {
+        Toast.makeText(this, "Podaci se nisu poslali, pokušajte kasnije!", Toast.LENGTH_SHORT).show();
     }
 }

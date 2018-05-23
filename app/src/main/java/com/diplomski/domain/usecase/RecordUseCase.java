@@ -16,8 +16,6 @@ import retrofit2.Response;
 
 public interface RecordUseCase {
 
-    Single<FullRecordingInfo> getFullRecordInfo();
-
     Single<Boolean> checkIfDataUploadNeeded();
 
     Completable addNewRecord(RecordInfo recordInfo, double distance);
@@ -27,4 +25,7 @@ public interface RecordUseCase {
     Single<Response<Void>> uploadRecordsToServer(List<FullRecordInfoRequest> fullRecordInfoRequests);
 
     Single<List<FullRecordInfoRequest>>  getAllRecordsThatNeedUpload();
+
+    Single<Boolean> updateRecordsSentToServer();
+
 }

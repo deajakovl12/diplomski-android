@@ -24,4 +24,6 @@ public interface DatabaseHelper {
     Completable addFullRecord(FullRecordingInfo fullRecordingInfo);
 
     SingleSource<List<FullRecordInfoRequest>> getAllRecordsThatNeedUpload();
+
+    Single<Boolean> updateRecordsSentToServer();
 }

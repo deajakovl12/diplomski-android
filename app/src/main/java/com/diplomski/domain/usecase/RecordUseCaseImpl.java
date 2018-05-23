@@ -33,12 +33,6 @@ public class RecordUseCaseImpl implements RecordUseCase{
         this.databaseHelper = databaseHelper;
     }
 
-
-    @Override
-    public Single<FullRecordingInfo> getFullRecordInfo() {
-        return null;
-    }
-
     @Override
     public Completable addNewRecord(RecordInfo recordInfo, double distance) {
         return Completable.defer(() -> databaseHelper.addNewRecord(recordInfo, distance));
@@ -62,5 +56,10 @@ public class RecordUseCaseImpl implements RecordUseCase{
     @Override
     public Single<List<FullRecordInfoRequest>> getAllRecordsThatNeedUpload() {
         return Single.defer(databaseHelper::getAllRecordsThatNeedUpload);
+    }
+
+    @Override
+    public Single<Boolean> updateRecordsSentToServer() {
+        return Single.defer(databaseHelper::updateRecordsSentToServer);
     }
 }
