@@ -17,9 +17,9 @@ import dagger.Provides;
 @Module
 public final class DataModule {
 
-    private static final String PREFS_NAME = "diplomskiSecureStorage";
+    public static final String PREFS_NAME = "diplomskiSecureStorage";
 
-    public static final int DATABASE_VERSION = 4;
+    public static final int DATABASE_VERSION = 5;
     public static final String DATABASE_NAME = "task.db";
 
     @Singleton

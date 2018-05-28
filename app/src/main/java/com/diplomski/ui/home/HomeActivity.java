@@ -5,7 +5,6 @@ import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Bitmap;
@@ -20,11 +19,13 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.provider.Settings;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v4.content.ContextCompat;
 import android.util.Base64;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -37,6 +38,7 @@ import com.diplomski.domain.model.FullRecordingInfo;
 import com.diplomski.domain.model.RecordInfo;
 import com.diplomski.injection.component.ActivityComponent;
 import com.diplomski.ui.base.activities.BaseActivity;
+import com.diplomski.ui.login.LoginActivity;
 import com.diplomski.util.Constants;
 import com.karumi.dexter.Dexter;
 import com.karumi.dexter.MultiplePermissionsReport;
@@ -59,6 +61,8 @@ import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
 import timber.log.Timber;
+
+import static com.diplomski.injection.module.DataModule.PREFS_NAME;
 
 
 public class HomeActivity extends BaseActivity implements HomeView {
@@ -100,6 +104,24 @@ public class HomeActivity extends BaseActivity implements HomeView {
     @BindView(R.id.image_taken)
     ImageView takenImage;
 
+    @BindView(R.id.fab)
+    FloatingActionButton fabMain;
+
+
+    @BindView(R.id.fab1)
+    FloatingActionButton fabChild1;
+
+
+    @BindView(R.id.fab2)
+    FloatingActionButton fabChild2;
+
+
+    @BindView(R.id.fab3)
+    FloatingActionButton fabChild3;
+
+    @BindView(R.id.scrollView)
+    ScrollView scrollView;
+
 
     BroadcastReceiver broadcastReceiverTimer = null;
     BroadcastReceiver broadcastReceiverLocation = null;
@@ -113,6 +135,7 @@ public class HomeActivity extends BaseActivity implements HomeView {
     private HandlerThread mCameraThread;
 
     private String saveTakenImageBase64;
+    private boolean isFABOpen;
 
 
     public static Intent createIntent(final Context context, final LoginApiResponse loginApiResponse) {
@@ -130,7 +153,7 @@ public class HomeActivity extends BaseActivity implements HomeView {
 
         loginApiResponse = getIntent().getParcelableExtra(LOGIN_EXTRA);
 
-        txtUserFirsNameLastName.setText(String.format("%d %s %s %s %s %s %d", loginApiResponse.id, loginApiResponse.ime, loginApiResponse.prezime, loginApiResponse.adresa, loginApiResponse.username, loginApiResponse.password, loginApiResponse.isAdmin));
+        txtUserFirsNameLastName.setText(String.format("%d %s %s %s %s %d", loginApiResponse.id, loginApiResponse.ime, loginApiResponse.prezime, loginApiResponse.adresa, loginApiResponse.username, loginApiResponse.isAdmin));
 //        checkLocationPermission();
 
         signatureCanvas.setColor(ContextCompat.getColor(this, android.R.color.black));
@@ -149,7 +172,6 @@ public class HomeActivity extends BaseActivity implements HomeView {
         // Camera code is complicated, so we've shoved it all in this closet class for you.
         mCamera = Camera.getInstance();
         mCamera.initializeCamera(this, mCameraHandler, mOnImageAvailableListener);
-
     }
 
 
@@ -227,7 +249,7 @@ public class HomeActivity extends BaseActivity implements HomeView {
     }
 
     @Override
-    public void resetAllToStart(){
+    public void resetAllToStart() {
         signatureCanvas.clear();
         takenImage.setImageDrawable(null);
         textView.setText("");
@@ -248,6 +270,46 @@ public class HomeActivity extends BaseActivity implements HomeView {
             return;
         }
     }
+
+    private void showFABMenu() {
+        isFABOpen = true;
+        fabChild1.animate().translationY(-60);
+        fabChild2.animate().translationY(-110);
+        fabChild3.animate().translationY(-160);
+    }
+
+    private void closeFABMenu() {
+        isFABOpen = false;
+        fabChild1.animate().translationY(0);
+        fabChild2.animate().translationY(0);
+        fabChild3.animate().translationY(0);
+    }
+
+    @OnClick(R.id.fab)
+    public void mainFabClick() {
+        if (!isFABOpen) {
+            showFABMenu();
+        } else {
+            closeFABMenu();
+        }
+    }
+
+    @OnClick(R.id.fab1)
+    public void fabChild1Click() {
+        presenter.checkDataForUploadLogout();
+    }
+
+    @OnClick(R.id.fab2)
+    public void fabChild2Click() {
+        Toast.makeText(this, "2", Toast.LENGTH_SHORT).show();
+
+    }
+
+    @OnClick(R.id.fab3)
+    public void fabChild3Click() {
+        Toast.makeText(this, "3", Toast.LENGTH_SHORT).show();
+    }
+
 
     @OnClick(R.id.signature_capture_clear_canvas)
     public void clearCanvas() {
@@ -309,7 +371,7 @@ public class HomeActivity extends BaseActivity implements HomeView {
                 if (broadcastReceiverLocation != null) {
                     unregisterReceiver(broadcastReceiverLocation);
                 }
-            }catch (Exception e){
+            } catch (Exception e) {
                 Timber.e("VEC ZAUSTAVLJENI RECEIVERI");
             }
             startService(new Intent(HomeActivity.this, ForegroundService.class).setAction(Constants.ACTION.STOPFOREGROUND_ACTION));
@@ -391,14 +453,33 @@ public class HomeActivity extends BaseActivity implements HomeView {
         builder.setPositiveButton(
                 "Pošalji",
                 (dialog, id) -> {
-                    if(isNetworkAvailable()) {
+                    if (isNetworkAvailable()) {
                         presenter.uploadRecordsToServer();
-                    }else{
+                    } else {
                         Toast.makeText(HomeActivity.this, "Nema internet konekcije, ne mogu poslati podatke!", Toast.LENGTH_SHORT).show();
                     }
                 });
         builder.setNegativeButton(
                 "Ne sada",
+                (dialog, id) -> dialog.dismiss());
+
+        AlertDialog alert11 = builder.create();
+        alert11.show();
+    }
+
+    private void createLogoutDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Odjavi se");
+        builder.setCancelable(false);
+        builder.setMessage("Postoje snimanja koja nisu poslana, ako se odjavite, ta snimanja će biti izgubljena! Odjavi se?");
+        builder.setPositiveButton(
+                "DA",
+                (dialog, id) -> {
+                    getApplicationContext().getSharedPreferences(PREFS_NAME, 0).edit().clear().apply();
+                    presenter.removeDataFromDb();
+                });
+        builder.setNegativeButton(
+                "NE",
                 (dialog, id) -> dialog.dismiss());
 
         AlertDialog alert11 = builder.create();
@@ -414,9 +495,9 @@ public class HomeActivity extends BaseActivity implements HomeView {
         builder.setPositiveButton(
                 "Pošalji",
                 (dialog, id) -> {
-                    if(isNetworkAvailable()) {
+                    if (isNetworkAvailable()) {
                         presenter.uploadRecordsToServer();
-                    }else{
+                    } else {
                         Toast.makeText(HomeActivity.this, "Nema internet konekcije, ne mogu poslati podatke!", Toast.LENGTH_SHORT).show();
                         resetAllToStart();
                     }
@@ -448,7 +529,7 @@ public class HomeActivity extends BaseActivity implements HomeView {
             if (broadcastReceiverLocation != null) {
                 unregisterReceiver(broadcastReceiverLocation);
             }
-        }catch (Exception e){
+        } catch (Exception e) {
             Timber.e("vec zaustavljen receiver!");
         }
         startService(new Intent(HomeActivity.this, ForegroundService.class).setAction(Constants.ACTION.STOPFOREGROUND_ACTION));
@@ -492,5 +573,20 @@ public class HomeActivity extends BaseActivity implements HomeView {
     @Override
     public void showErroUploadMessage() {
         Toast.makeText(this, "Podaci se nisu poslali, pokušajte kasnije!", Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void hasData(Boolean notSent) {
+        if (notSent) {
+            createLogoutDialog();
+        } else {
+            getApplicationContext().getSharedPreferences(PREFS_NAME, 0).edit().clear().apply();
+            presenter.removeDataFromDb();
+        }
+    }
+
+    @Override
+    public void logoutUser() {
+        startActivity(new Intent(HomeActivity.this, LoginActivity.class));
     }
 }

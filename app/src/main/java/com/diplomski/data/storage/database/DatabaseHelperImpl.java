@@ -8,6 +8,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
 import com.diplomski.data.api.models.request.FullRecordInfoRequest;
+import com.diplomski.data.api.models.response.LoginApiResponse;
 import com.diplomski.data.storage.PreferenceRepository;
 import com.diplomski.domain.model.FullRecordingInfo;
 import com.diplomski.domain.model.RecordInfo;
@@ -32,17 +33,27 @@ public class DatabaseHelperImpl extends SQLiteOpenHelper implements DatabaseHelp
         this.preferenceRepository = preferenceRepository;
     }
 
-    @Override
-    public void onCreate(SQLiteDatabase db) {
+    private void createAllTables(SQLiteDatabase db) {
         db.execSQL(FullRecordContract.SQL_CREATE_ENTRIES);
         db.execSQL(RecordContract.SQL_CREATE_ENTRIES);
+        db.execSQL(UserContract.SQL_CREATE_ENTRIES);
+    }
+
+    private void deleteAllTables(SQLiteDatabase db) {
+        db.execSQL(FullRecordContract.SQL_DELETE_ENTRIES);
+        db.execSQL(RecordContract.SQL_DELETE_ENTRIES);
+        db.execSQL(UserContract.SQL_DELETE_ENTRIES);
+        onCreate(db);
+    }
+
+    @Override
+    public void onCreate(SQLiteDatabase db) {
+        createAllTables(db);
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int i, int i1) {
-        db.execSQL(FullRecordContract.SQL_DELETE_ENTRIES);
-        db.execSQL(RecordContract.SQL_DELETE_ENTRIES);
-        onCreate(db);
+        deleteAllTables(db);
     }
 
     @Override
@@ -80,11 +91,6 @@ public class DatabaseHelperImpl extends SQLiteOpenHelper implements DatabaseHelp
             }
             return Completable.complete();
         });
-    }
-
-    @Override
-    public Single<FullRecordingInfo> getFullRecordInfo() {
-        return null;
     }
 
     @Override
@@ -218,4 +224,65 @@ public class DatabaseHelperImpl extends SQLiteOpenHelper implements DatabaseHelp
             }
         });
     }
+
+    @Override
+    public Single<LoginApiResponse> loginUser(LoginApiResponse user) {
+        return Single.defer(() -> {
+            ContentValues values = new ContentValues();
+            SQLiteDatabase db = getReadableDatabase();
+            values.put(UserContract.UserEntry.ID_USER, user.id);
+            values.put(UserContract.UserEntry.USER_NAME, user.ime);
+            values.put(UserContract.UserEntry.USER_LAST_NAME, user.prezime);
+            values.put(UserContract.UserEntry.USER_ADDRESS, user.adresa);
+            values.put(UserContract.UserEntry.USER_USERNAME, user.username);
+            values.put(UserContract.UserEntry.USER_IS_ADMIN, user.isAdmin);
+            db.insert(UserContract.UserEntry.TABLE_NAME, null, values);
+            return Single.just(user);
+        });
+    }
+
+    @Override
+    public Single<LoginApiResponse> getLoggedInUser() {
+        return Single.defer(() -> {
+
+            SQLiteDatabase db = getReadableDatabase();
+            String[] projection = {
+                    UserContract.UserEntry.ID_USER,
+                    UserContract.UserEntry.USER_NAME,
+                    UserContract.UserEntry.USER_LAST_NAME,
+                    UserContract.UserEntry.USER_ADDRESS,
+                    UserContract.UserEntry.USER_USERNAME,
+                    UserContract.UserEntry.USER_IS_ADMIN
+            };
+            Cursor cursor;
+            cursor = db.query(
+                    UserContract.UserEntry.TABLE_NAME, projection, null, null, null, null, null);
+
+            LoginApiResponse loginApiResponse = null;
+            while (cursor.moveToNext()) {
+                loginApiResponse = new LoginApiResponse(
+                        cursor.getInt(0),
+                        cursor.getString(1),
+                        cursor.getString(2),
+                        cursor.getString(3),
+                        cursor.getString(4),
+                        "",
+                        cursor.getInt(5)
+                );
+            }
+            cursor.close();
+            return Single.just(loginApiResponse);
+        });
+    }
+
+    @Override
+    public Completable removeAllDataFromDb() {
+        return Completable.defer(() -> {
+            SQLiteDatabase db = getReadableDatabase();
+            deleteAllTables(db);
+            return Completable.complete();
+        });
+    }
+
+
 }

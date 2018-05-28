@@ -57,4 +57,40 @@ public class LoginPresenterImpl extends BasePresenter implements  LoginPresenter
     private void onLoginFailure(Throwable throwable) {
         Timber.e(throwable.getMessage());
     }
+
+    @Override
+    public void saveLoginUserToDb(LoginApiResponse loginApiResponse) {
+        addDisposable(loginUseCase.saveUserToDb(loginApiResponse)
+                .subscribeOn(subscribeScheduler)
+                .observeOn(observeScheduler)
+                .subscribe(this::onSaveUserToDbSuccess, this::onSaveUserToDbFailure));
+    }
+
+    private void onSaveUserToDbFailure(Throwable throwable) {
+        Timber.e(throwable.getMessage() +  " ");
+    }
+
+    private void onSaveUserToDbSuccess(LoginApiResponse loginApiResponse) {
+        if(view != null){
+            view.savedToDbucess(loginApiResponse);
+        }
+    }
+
+    @Override
+    public void checkIfUserIsLoggedIn() {
+        addDisposable(loginUseCase.getUserFromDb()
+                .subscribeOn(subscribeScheduler)
+                .observeOn(observeScheduler)
+                .subscribe(this::onGetUserFromDbSuccess, this::onGetUserFromDbFailure));
+    }
+
+    private void onGetUserFromDbSuccess(LoginApiResponse loginApiResponse) {
+        if(view != null){
+            view.userAlreadyLoggedIn(loginApiResponse);
+        }
+    }
+
+    private void onGetUserFromDbFailure(Throwable throwable) {
+        Timber.e("ERROR get user " + throwable.getMessage());
+    }
 }

@@ -35,8 +35,8 @@ public final class UseCaseModule {
 
     @Provides
     @Singleton
-    LoginUseCase provideLoginUseCase(final NetworkService networkService) {
-        return new LoginUseCaseImpl(networkService);
+    LoginUseCase provideLoginUseCase(final NetworkService networkService, final DatabaseHelper databaseHelper) {
+        return new LoginUseCaseImpl(networkService, databaseHelper);
     }
 
 }

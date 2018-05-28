@@ -19,4 +19,9 @@ public interface HomePresenter {
     void checkDataForUpload();
 
     void uploadRecordsToServer();
+
+    void checkDataForUploadLogout();
+
+    void removeDataFromDb();
+
 }

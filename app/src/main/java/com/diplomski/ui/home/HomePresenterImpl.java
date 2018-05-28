@@ -7,6 +7,7 @@ import com.diplomski.data.api.models.request.FullRecordInfoRequest;
 import com.diplomski.data.api.models.response.MovieApiResponse;
 import com.diplomski.domain.model.FullRecordingInfo;
 import com.diplomski.domain.model.RecordInfo;
+import com.diplomski.domain.usecase.LoginUseCase;
 import com.diplomski.domain.usecase.MovieUseCase;
 import com.diplomski.domain.usecase.RecordUseCase;
 import com.diplomski.manager.StringManager;
@@ -40,16 +41,19 @@ public final class HomePresenterImpl extends BasePresenter implements HomePresen
 
     private final RecordUseCase recordUseCase;
 
+    private final LoginUseCase loginUseCase;
+
     public HomePresenterImpl(@Named(SUBSCRIBE_SCHEDULER) final Scheduler subscribeScheduler,
                              @Named(OBSERVE_SCHEDULER) final Scheduler observeScheduler, final MovieUseCase movieUseCase,
                              final MovieAPIConverter movieAPIConverter, final StringManager stringManager,
-                             final RecordUseCase recordUseCase) {
+                             final RecordUseCase recordUseCase, final LoginUseCase loginUseCase) {
         this.subscribeScheduler = subscribeScheduler;
         this.observeScheduler = observeScheduler;
         this.movieUseCase = movieUseCase;
         this.movieAPIConverter = movieAPIConverter;
         this.stringManager = stringManager;
         this.recordUseCase = recordUseCase;
+        this.loginUseCase = loginUseCase;
     }
 
     @Override
@@ -204,4 +208,35 @@ public final class HomePresenterImpl extends BasePresenter implements HomePresen
         Timber.e("FAIL UPDATE", throwable.getMessage());
     }
 
+    @Override
+    public void checkDataForUploadLogout() {
+        addDisposable(recordUseCase.checkIfDataUploadNeeded()
+                .subscribeOn(subscribeScheduler)
+                .observeOn(observeScheduler)
+                .subscribe(this::onCheckForLogoutSuccess, this::onCheckFailure));
+    }
+
+    private void onCheckForLogoutSuccess(Boolean notSent) {
+        if (view != null) {
+            view.hasData(notSent);
+        }
+    }
+
+    @Override
+    public void removeDataFromDb() {
+        addDisposable(loginUseCase.removeAllDataFromDb()
+                .subscribeOn(subscribeScheduler)
+                .observeOn(observeScheduler)
+                .subscribe(this::onRemoveAllDataSucess, this::onRemoveAllDataFailure));
+    }
+
+    private void onRemoveAllDataFailure(Throwable throwable) {
+        Timber.e("FAIL LOGOUT", throwable.getMessage());
+    }
+
+    private void onRemoveAllDataSucess() {
+        if(view != null){
+            view.logoutUser();
+        }
+    }
 }

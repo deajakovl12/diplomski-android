@@ -14,4 +14,8 @@ public interface HomeView {
     void resetAllToStart();
 
     void showErroUploadMessage();
+
+    void hasData(Boolean notSent);
+
+    void logoutUser();
 }

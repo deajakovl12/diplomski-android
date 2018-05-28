@@ -35,6 +35,8 @@ public class LoginActivity extends BaseActivity implements LoginView{
         setContentView(R.layout.activity_login);
 
         ButterKnife.bind(this);
+
+        presenter.checkIfUserIsLoggedIn();
     }
 
     @OnClick(R.id.button_login)
@@ -66,11 +68,24 @@ public class LoginActivity extends BaseActivity implements LoginView{
 
     @Override
     public void loginSuccessfull(LoginApiResponse loginApiResponse) {
-        startActivity(HomeActivity.createIntent(this, loginApiResponse));
+        presenter.saveLoginUserToDb(loginApiResponse);
     }
+
 
     @Override
     public void loginFailure() {
         Toast.makeText(this, "Login failure", Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void savedToDbucess(LoginApiResponse loginApiResponse) {
+        startActivity(HomeActivity.createIntent(this, loginApiResponse));
+    }
+
+    @Override
+    public void userAlreadyLoggedIn(LoginApiResponse loginApiResponse) {
+        if(loginApiResponse != null) {
+            startActivity(HomeActivity.createIntent(this, loginApiResponse));
+        }
     }
 }

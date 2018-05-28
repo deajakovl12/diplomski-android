@@ -31,13 +31,15 @@ public final class PresenterModule {
                                        MovieUseCase movieUseCase,
                                        MovieAPIConverter movieAPIConverter,
                                        StringManager stringManager,
-                                       RecordUseCase recordUseCase) {
+                                       RecordUseCase recordUseCase,
+                                       LoginUseCase loginUseCase) {
         return new HomePresenterImpl(subscribeScheduler,
                 observeScheduler,
                 movieUseCase,
                 movieAPIConverter,
                 stringManager,
-                recordUseCase);
+                recordUseCase,
+                loginUseCase);
     }
 
     @ForActivity
