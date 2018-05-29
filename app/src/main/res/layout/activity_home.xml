@@ -5,7 +5,15 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
+    <TextView
+        android:id="@+id/connected_wifi"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="@android:color/holo_red_dark"
+        android:textSize="16sp" />
+
     <ScrollView
+        android:layout_below="@id/connected_wifi"
         android:id="@+id/scrollView"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
@@ -104,7 +112,7 @@
         android:layout_alignParentBottom="true"
         android:layout_alignParentEnd="true"
         android:layout_margin="11dp"
-        app:srcCompat="@android:drawable/ic_menu_camera" />
+        app:srcCompat="@drawable/ic_wifi_black_24dp" />
 
     <android.support.design.widget.FloatingActionButton
         android:id="@+id/fab1"

@@ -15,6 +15,8 @@ import android.media.Image;
 import android.media.ImageReader;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -39,6 +41,7 @@ import com.diplomski.domain.model.RecordInfo;
 import com.diplomski.injection.component.ActivityComponent;
 import com.diplomski.ui.base.activities.BaseActivity;
 import com.diplomski.ui.login.LoginActivity;
+import com.diplomski.ui.wifiactivity.WifiActivity;
 import com.diplomski.util.Constants;
 import com.karumi.dexter.Dexter;
 import com.karumi.dexter.MultiplePermissionsReport;
@@ -122,6 +125,9 @@ public class HomeActivity extends BaseActivity implements HomeView {
     @BindView(R.id.scrollView)
     ScrollView scrollView;
 
+    @BindView(R.id.connected_wifi)
+    TextView connectedWifi;
+
 
     BroadcastReceiver broadcastReceiverTimer = null;
     BroadcastReceiver broadcastReceiverLocation = null;
@@ -172,8 +178,10 @@ public class HomeActivity extends BaseActivity implements HomeView {
         // Camera code is complicated, so we've shoved it all in this closet class for you.
         mCamera = Camera.getInstance();
         mCamera.initializeCamera(this, mCameraHandler, mOnImageAvailableListener);
-    }
 
+
+
+    }
 
     /**
      * Listener for new camera images.
@@ -301,7 +309,7 @@ public class HomeActivity extends BaseActivity implements HomeView {
 
     @OnClick(R.id.fab2)
     public void fabChild2Click() {
-        Toast.makeText(this, "2", Toast.LENGTH_SHORT).show();
+        startActivity(new Intent(HomeActivity.this, WifiActivity.class));
 
     }
 
@@ -435,6 +443,10 @@ public class HomeActivity extends BaseActivity implements HomeView {
         super.onResume();
         presenter.setView(this);
         presenter.checkDataForUpload();
+
+        WifiManager wifiManager = (WifiManager) getSystemService (Context.WIFI_SERVICE);
+        WifiInfo info = wifiManager.getConnectionInfo ();
+        connectedWifi.setText(info.getSSID());
         //presenter.getMovieInfo();
     }
 
