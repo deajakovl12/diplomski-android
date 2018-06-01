@@ -1,6 +1,7 @@
 package com.diplomski.ui.home;
 
 
+import com.diplomski.data.api.models.response.LoginApiResponse;
 import com.diplomski.data.api.models.response.MovieApiResponse;
 
 public interface HomeView {
@@ -11,11 +12,14 @@ public interface HomeView {
 
     void needDataUpload(Boolean notSent);
 
-    void resetAllToStart();
+    void resetAllToStart(boolean needRefreshUserData);
 
     void showErroUploadMessage();
 
     void hasData(Boolean notSent);
 
     void logoutUser();
+
+    void updateUserDistance(LoginApiResponse loginApiResponse);
+
 }

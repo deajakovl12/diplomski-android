@@ -30,7 +30,7 @@ public interface DatabaseHelper {
 
     SingleSource<List<FullRecordInfoRequest>> getAllRecordsThatNeedUpload();
 
-    Single<Boolean> updateRecordsSentToServer();
+    Single<Boolean> updateRecordsSentToServer(double distanceTraveled);
 
     Completable removeAllDataFromDb();
 }

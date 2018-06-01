@@ -59,7 +59,7 @@ public class RecordUseCaseImpl implements RecordUseCase{
     }
 
     @Override
-    public Single<Boolean> updateRecordsSentToServer() {
-        return Single.defer(databaseHelper::updateRecordsSentToServer);
+    public Single<Boolean> updateRecordsSentToServer(double distanceTraveled) {
+        return Single.defer(() -> databaseHelper.updateRecordsSentToServer(distanceTraveled));
     }
 }

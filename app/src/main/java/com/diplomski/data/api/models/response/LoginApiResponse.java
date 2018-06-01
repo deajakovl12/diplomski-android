@@ -12,15 +12,19 @@ public class LoginApiResponse implements Parcelable {
     public String adresa;
     public String username;
     public String password;
+    public double pocetnaKazna;
+    public double preostaloKazne;
     public int isAdmin;
 
-    public LoginApiResponse(int id, String ime, String prezime, String adresa, String username, String password, int isAdmin) {
+    public LoginApiResponse(int id, String ime, String prezime, String adresa, String username, String password, int isAdmin, double pocetnaKazna, double preostaloKazne) {
         this.id = id;
         this.ime = ime;
         this.prezime = prezime;
         this.adresa = adresa;
         this.username = username;
         this.password = password;
+        this.pocetnaKazna = pocetnaKazna;
+        this.preostaloKazne = preostaloKazne;
         this.isAdmin = isAdmin;
     }
 
@@ -38,6 +42,8 @@ public class LoginApiResponse implements Parcelable {
         dest.writeString(this.adresa);
         dest.writeString(this.username);
         dest.writeString(this.password);
+        dest.writeDouble(this.pocetnaKazna);
+        dest.writeDouble(this.preostaloKazne);
         dest.writeInt(this.isAdmin);
     }
 
@@ -48,6 +54,8 @@ public class LoginApiResponse implements Parcelable {
         this.adresa = in.readString();
         this.username = in.readString();
         this.password = in.readString();
+        this.pocetnaKazna = in.readDouble();
+        this.preostaloKazne = in.readDouble();
         this.isAdmin = in.readInt();
     }
 

@@ -10,6 +10,8 @@ public class UserContract {
                     UserContract.UserEntry.USER_LAST_NAME + " TEXT," +
                     UserContract.UserEntry.USER_ADDRESS + " TEXT, " +
                     UserContract.UserEntry.USER_USERNAME + " TEXT, " +
+                    UserContract.UserEntry.USER_POCETNA_KAZNA + " REAL, " +
+                    UserContract.UserEntry.USER_PREOSTALO_KAZNE + " REAL, " +
                     UserContract.UserEntry.USER_IS_ADMIN + " INTEGER)";
 
     public static final String SQL_DELETE_ENTRIES =
@@ -26,6 +28,8 @@ public class UserContract {
         public static final String USER_ADDRESS = "user_address";
         public static final String USER_USERNAME = "user_username";
         public static final String USER_IS_ADMIN = "user_is_admin";
+        public static final String USER_POCETNA_KAZNA = "user_pocetna_kazna";
+        public static final String USER_PREOSTALO_KAZNE = "user_preostalo_kazne";
 
     }
 }

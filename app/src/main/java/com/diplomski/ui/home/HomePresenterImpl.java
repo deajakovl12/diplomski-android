@@ -4,7 +4,9 @@ package com.diplomski.ui.home;
 import com.diplomski.R;
 import com.diplomski.data.api.converter.MovieAPIConverter;
 import com.diplomski.data.api.models.request.FullRecordInfoRequest;
+import com.diplomski.data.api.models.response.LoginApiResponse;
 import com.diplomski.data.api.models.response.MovieApiResponse;
+import com.diplomski.data.api.models.response.UploadDataResponse;
 import com.diplomski.domain.model.FullRecordingInfo;
 import com.diplomski.domain.model.RecordInfo;
 import com.diplomski.domain.usecase.LoginUseCase;
@@ -155,28 +157,27 @@ public final class HomePresenterImpl extends BasePresenter implements HomePresen
     }
 
     private void onGetAllRecordsSuccess(List<FullRecordInfoRequest> fullRecordInfoRequests) {
-        //TODO HERE UPLOAD THIS DATA TO SERVER AND AFTER IT IS UPLOADED CHANGE ALL SERVER UPLOAD TO 2!
-//        for (FullRecordInfoRequest fullRecordInfoRequest : fullRecordInfoRequests) {
-//            for (FullRecordInfoRequest.OneRecordInfoRequest oneRecordInfoRequest : fullRecordInfoRequest.oneRecordList) {
-//                Timber.e(oneRecordInfoRequest.idFullrecord + "----------" + oneRecordInfoRequest.currentDate);
-//            }
-//        }
-        uploadRecordsToServerOnline(fullRecordInfoRequests);
+        double distanceUploaded = 0;
+        for (FullRecordInfoRequest fullRecordInfoRequest : fullRecordInfoRequests) {
+            distanceUploaded += fullRecordInfoRequest.distanceTraveled;
+        }
+        uploadRecordsToServerOnline(fullRecordInfoRequests, distanceUploaded);
     }
 
-    public void uploadRecordsToServerOnline(List<FullRecordInfoRequest> fullRecordInfoRequests) {
+    public void uploadRecordsToServerOnline(List<FullRecordInfoRequest> fullRecordInfoRequests, double distanceUploaded) {
         addDisposable(recordUseCase.uploadRecordsToServer(fullRecordInfoRequests)
+                .map(response -> new UploadDataResponse(response, distanceUploaded))
                 .subscribeOn(subscribeScheduler)
                 .observeOn(observeScheduler)
                 .subscribe(this::onUploadRecordSuccess, this::onUploadRecordsFailure));
     }
 
-    private void onUploadRecordSuccess(Response<Void> response) {
+    private void onUploadRecordSuccess(UploadDataResponse response) {
         if(view != null){
-             if(response.isSuccessful()) {
-                 updateSentToServerFlag();
+             if(response.response.isSuccessful()) {
+                 updateSentToServerFlag(response.distanceTraveled);
              }else{
-                 view.resetAllToStart();
+                 view.resetAllToStart(true);
                  view.showErroUploadMessage();
              }
         }
@@ -184,10 +185,13 @@ public final class HomePresenterImpl extends BasePresenter implements HomePresen
 
     private void onUploadRecordsFailure(Throwable throwable) {
         Timber.e("NENE" + throwable.getMessage());
+        if(view != null) {
+            view.resetAllToStart(false);
+        }
     }
 
-    public void updateSentToServerFlag() {
-        addDisposable(recordUseCase.updateRecordsSentToServer()
+    public void updateSentToServerFlag(double distanceTraveled) {
+        addDisposable(recordUseCase.updateRecordsSentToServer(distanceTraveled)
                 .subscribeOn(subscribeScheduler)
                 .observeOn(observeScheduler)
                 .subscribe(this::onUpdateSentToServerFlagSuccess, this::onUpdateSentToServerFlagFailure));
@@ -196,9 +200,9 @@ public final class HomePresenterImpl extends BasePresenter implements HomePresen
     private void onUpdateSentToServerFlagSuccess(Boolean updated) {
         if(view != null){
             if(updated) {
-                view.resetAllToStart();
+                view.resetAllToStart(true);
             }else{
-                view.resetAllToStart();
+                view.resetAllToStart(true);
                 view.showErroUploadMessage();
             }
         }
@@ -237,6 +241,24 @@ public final class HomePresenterImpl extends BasePresenter implements HomePresen
     private void onRemoveAllDataSucess() {
         if(view != null){
             view.logoutUser();
+        }
+    }
+
+    @Override
+    public void updateTraveledDistance() {
+        addDisposable(loginUseCase.getUserFromDb()
+                .subscribeOn(subscribeScheduler)
+                .observeOn(observeScheduler)
+                .subscribe(this::onGetUserFromDbSuccess, this::onGetUserFromDbFailure));
+    }
+
+    private void onGetUserFromDbFailure(Throwable throwable) {
+        Timber.e(throwable.getMessage() + " ");
+    }
+
+    private void onGetUserFromDbSuccess(LoginApiResponse loginApiResponse) {
+        if(view != null){
+            view.updateUserDistance(loginApiResponse);
         }
     }
 }

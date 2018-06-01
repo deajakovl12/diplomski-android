@@ -204,7 +204,7 @@ public class DatabaseHelperImpl extends SQLiteOpenHelper implements DatabaseHelp
     }
 
     @Override
-    public Single<Boolean> updateRecordsSentToServer() {
+    public Single<Boolean> updateRecordsSentToServer(double distanceTraveled) {
         return Single.defer(() -> {
             try {
                 ContentValues values = new ContentValues();
@@ -216,6 +216,32 @@ public class DatabaseHelperImpl extends SQLiteOpenHelper implements DatabaseHelp
                 String[] selectionArgs = {String.valueOf(1)};
 
                 db.update(FullRecordContract.FullRecordEntry.TABLE_NAME, values, selection, selectionArgs);
+
+                String[] projection = {
+                        UserContract.UserEntry.USER_PREOSTALO_KAZNE
+                };
+                Cursor cursor;
+                cursor = db.query(
+                        UserContract.UserEntry.TABLE_NAME, projection, null, null, null, null, null);
+
+                double preostaloKazne = 0;
+                while (cursor.moveToNext()) {
+                    preostaloKazne = cursor.getDouble(0);
+                }
+                cursor.close();
+
+                preostaloKazne -= distanceTraveled;
+
+                values = new ContentValues();
+
+                if (preostaloKazne <= 0) {
+                    values.put(UserContract.UserEntry.USER_PREOSTALO_KAZNE, 0);
+                } else {
+                    values.put(UserContract.UserEntry.USER_PREOSTALO_KAZNE, preostaloKazne);
+                }
+
+                db.update(UserContract.UserEntry.TABLE_NAME, values, null, null);
+
                 return Single.just(true);
 
             } catch (Exception e) {
@@ -236,6 +262,8 @@ public class DatabaseHelperImpl extends SQLiteOpenHelper implements DatabaseHelp
             values.put(UserContract.UserEntry.USER_ADDRESS, user.adresa);
             values.put(UserContract.UserEntry.USER_USERNAME, user.username);
             values.put(UserContract.UserEntry.USER_IS_ADMIN, user.isAdmin);
+            values.put(UserContract.UserEntry.USER_POCETNA_KAZNA, user.pocetnaKazna);
+            values.put(UserContract.UserEntry.USER_PREOSTALO_KAZNE, user.preostaloKazne);
             db.insert(UserContract.UserEntry.TABLE_NAME, null, values);
             return Single.just(user);
         });
@@ -252,7 +280,9 @@ public class DatabaseHelperImpl extends SQLiteOpenHelper implements DatabaseHelp
                     UserContract.UserEntry.USER_LAST_NAME,
                     UserContract.UserEntry.USER_ADDRESS,
                     UserContract.UserEntry.USER_USERNAME,
-                    UserContract.UserEntry.USER_IS_ADMIN
+                    UserContract.UserEntry.USER_IS_ADMIN,
+                    UserContract.UserEntry.USER_POCETNA_KAZNA,
+                    UserContract.UserEntry.USER_PREOSTALO_KAZNE
             };
             Cursor cursor;
             cursor = db.query(
@@ -267,7 +297,9 @@ public class DatabaseHelperImpl extends SQLiteOpenHelper implements DatabaseHelp
                         cursor.getString(3),
                         cursor.getString(4),
                         "",
-                        cursor.getInt(5)
+                        cursor.getInt(5),
+                        cursor.getDouble(6),
+                        cursor.getDouble(7)
                 );
             }
             cursor.close();

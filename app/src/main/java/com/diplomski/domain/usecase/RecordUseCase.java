@@ -26,6 +26,6 @@ public interface RecordUseCase {
 
     Single<List<FullRecordInfoRequest>>  getAllRecordsThatNeedUpload();
 
-    Single<Boolean> updateRecordsSentToServer();
+    Single<Boolean> updateRecordsSentToServer(double distanceTraveled);
 
 }

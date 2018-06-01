@@ -158,9 +158,8 @@ public class HomeActivity extends BaseActivity implements HomeView {
         ButterKnife.bind(this);
 
         loginApiResponse = getIntent().getParcelableExtra(LOGIN_EXTRA);
-
-        txtUserFirsNameLastName.setText(String.format("%d %s %s %s %s %d", loginApiResponse.id, loginApiResponse.ime, loginApiResponse.prezime, loginApiResponse.adresa, loginApiResponse.username, loginApiResponse.isAdmin));
 //        checkLocationPermission();
+        showUserData();
 
         signatureCanvas.setColor(ContextCompat.getColor(this, android.R.color.black));
         signatureCanvas.setMinStrokeWidth(MINSTROKEWIDTH);
@@ -257,13 +256,16 @@ public class HomeActivity extends BaseActivity implements HomeView {
     }
 
     @Override
-    public void resetAllToStart() {
+    public void resetAllToStart(boolean needRefreshUserData) {
         signatureCanvas.clear();
         takenImage.setImageDrawable(null);
         textView.setText("");
         textViewLocation.setText("");
         textViewDistance.setText("");
         textViewSpeed.setText("");
+        if(needRefreshUserData) {
+            presenter.updateTraveledDistance();
+        }
     }
 
     public void isLocationEnabled() {
@@ -511,14 +513,14 @@ public class HomeActivity extends BaseActivity implements HomeView {
                         presenter.uploadRecordsToServer();
                     } else {
                         Toast.makeText(HomeActivity.this, "Nema internet konekcije, ne mogu poslati podatke!", Toast.LENGTH_SHORT).show();
-                        resetAllToStart();
+                        resetAllToStart(false);
                     }
                 });
         builder.setNegativeButton(
                 "Ne sada",
                 (dialog, id) -> {
                     dialog.dismiss();
-                    resetAllToStart();
+                    resetAllToStart(false);
                 });
 
         AlertDialog alert11 = builder.create();
@@ -600,5 +602,15 @@ public class HomeActivity extends BaseActivity implements HomeView {
     @Override
     public void logoutUser() {
         startActivity(new Intent(HomeActivity.this, LoginActivity.class));
+    }
+
+    @Override
+    public void updateUserDistance(LoginApiResponse loginApiResponse) {
+        this.loginApiResponse = loginApiResponse;
+        showUserData();
+    }
+
+    private void showUserData(){
+        txtUserFirsNameLastName.setText(String.format("%d %s %s %s %s %d %f %f", loginApiResponse.id, loginApiResponse.ime, loginApiResponse.prezime, loginApiResponse.adresa, loginApiResponse.username, loginApiResponse.isAdmin, loginApiResponse.pocetnaKazna, loginApiResponse.preostaloKazne));
     }
 }

@@ -24,4 +24,6 @@ public interface HomePresenter {
 
     void removeDataFromDb();
 
+    void updateTraveledDistance();
+
 }
