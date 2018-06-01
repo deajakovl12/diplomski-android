@@ -9,6 +9,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Camera;
 import android.location.Location;
 import android.location.LocationManager;
 import android.media.Image;
@@ -34,8 +35,9 @@ import android.widget.Toast;
 import com.diplomski.R;
 import com.diplomski.data.api.models.response.LoginApiResponse;
 import com.diplomski.data.api.models.response.MovieApiResponse;
-import com.diplomski.device.Camera;
 import com.diplomski.device.ForegroundService;
+import com.diplomski.device.camera.CameraHandler;
+import com.diplomski.device.camera.ImagePreProcessor;
 import com.diplomski.domain.model.FullRecordingInfo;
 import com.diplomski.domain.model.RecordInfo;
 import com.diplomski.injection.component.ActivityComponent;
@@ -68,7 +70,7 @@ import timber.log.Timber;
 import static com.diplomski.injection.module.DataModule.PREFS_NAME;
 
 
-public class HomeActivity extends BaseActivity implements HomeView {
+public class HomeActivity extends BaseActivity implements HomeView, ImageReader.OnImageAvailableListener{
 
 
     private static final float MINSTROKEWIDTH = 0.75f;
@@ -136,13 +138,23 @@ public class HomeActivity extends BaseActivity implements HomeView {
     private boolean isSignatureAdded = false;
     private boolean isImageTaken = false;
 
-    private Camera mCamera;
-    private Handler mCameraHandler;
-    private HandlerThread mCameraThread;
+//    private Camera mCamera;
+//    private Handler mCameraHandler;
+//    private HandlerThread mCameraThread;
 
     private String saveTakenImageBase64;
     private boolean isFABOpen;
 
+
+    private ImagePreProcessor imagePreProcessor;
+    private CameraHandler cameraHandler;
+
+    private HandlerThread backgroundThread;
+    private Handler backgroundHandler;
+
+    private boolean ready = false;
+
+    private Camera camera;
 
     public static Intent createIntent(final Context context, final LoginApiResponse loginApiResponse) {
         return new Intent(context, HomeActivity.class).putExtra(LOGIN_EXTRA, loginApiResponse);
@@ -170,48 +182,67 @@ public class HomeActivity extends BaseActivity implements HomeView {
         });
         setOnEditorActionListeners();
 
-        mCameraThread = new HandlerThread("CameraBackground");
-        mCameraThread.start();
-        mCameraHandler = new Handler(mCameraThread.getLooper());
+//        mCameraThread = new HandlerThread("CameraBackground");
+//        mCameraThread.start();
+//        mCameraHandler = new Handler(mCameraThread.getLooper());
 
         // Camera code is complicated, so we've shoved it all in this closet class for you.
-        mCamera = Camera.getInstance();
-        mCamera.initializeCamera(this, mCameraHandler, mOnImageAvailableListener);
+//        mCamera = Camera.getInstance();
+//        mCamera.initializeCamera(this, mCameraHandler, mOnImageAvailableListener);
 
 
+        backgroundThread = new HandlerThread("BackgroundThread");
+        backgroundThread.start();
+        backgroundHandler = new Handler(backgroundThread.getLooper());
+        backgroundHandler.post(mInitializeOnBackground);
+        //imagePreProcessor = new ImagePreProcessor();
+        //cameraHandler = CameraHandler.getInstance();
+        //cameraHandler.initializeCamera(this, );
 
     }
 
     /**
      * Listener for new camera images.
      */
-    private ImageReader.OnImageAvailableListener mOnImageAvailableListener =
-            reader -> {
-                Image image = reader.acquireLatestImage();
-                // get image bytes
-                ByteBuffer imageBuf = image.getPlanes()[0].getBuffer();
-                final byte[] imageBytes = new byte[imageBuf.remaining()];
-                imageBuf.get(imageBytes);
-                image.close();
-                HomeActivity.this.runOnUiThread(() -> onPictureTaken(imageBytes));
-            };
+//    private ImageReader.OnImageAvailableListener mOnImageAvailableListener =
+//            reader -> {
+//                Image image = reader.acquireLatestImage();
+//                 get image bytes
+//                ByteBuffer imageBuf = image.getPlanes()[0].getBuffer();
+//                final byte[] imageBytes = new byte[imageBuf.remaining()];
+//                imageBuf.get(imageBytes);
+//                image.close();
+//                HomeActivity.this.runOnUiThread(() -> onPictureTaken(imageBytes));
+//            };
 
     /**
      * Upload image data to Firebase as a doorbell event.
      */
 
-    private void onPictureTaken(final byte[] imageBytes) {
-        if (imageBytes != null) {
-//
-            Log.e("IAGEMGMEEGM", imageBytes.toString() + " a");
+//    private void onPictureTaken(final byte[] imageBytes) {
+//        if (imageBytes != null) {
 
-            Bitmap bmp = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
-            takenImage.setImageBitmap(bmp);
-            isImageTaken = true;
-            saveTakenImageBase64 = Base64.encodeToString(imageBytes, Base64.DEFAULT);
-            Log.e("Signature base64", saveTakenImageBase64);
+//            Log.e("IAGEMGMEEGM", imageBytes.toString() + " a");
+//
+//            Bitmap bmp = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
+//            takenImage.setImageBitmap(bmp);
+//            isImageTaken = true;
+//            saveTakenImageBase64 = Base64.encodeToString(imageBytes, Base64.DEFAULT);
+//            Log.e("Signature base64", saveTakenImageBase64);
+//        }
+//    }
+
+    private Runnable mInitializeOnBackground = new Runnable() {
+        @Override
+        public void run() {
+            imagePreProcessor = new ImagePreProcessor();
+            cameraHandler = CameraHandler.getInstance();
+            cameraHandler.initializeCamera(getApplicationContext(), backgroundHandler, HomeActivity.this);
+            ready = true;
         }
-    }
+    };
+
+
 
     private void setOnEditorActionListeners() {
         signatureCanvas.addListener(new InkView.InkListener() {
@@ -329,8 +360,19 @@ public class HomeActivity extends BaseActivity implements HomeView {
 
     @OnClick(R.id.button_slika)
     public void takePicture() {
-        mCamera.takePicture();
+        if(ready){
+            ready = false;
+            backgroundHandler.post(mBackgroundClickHandler);
+        }
+//        mCamera.takePicture();
     }
+
+    private Runnable mBackgroundClickHandler = new Runnable() {
+        @Override
+        public void run() {
+            cameraHandler.takePicture();
+        }
+    };
 
 
     @OnClick(R.id.button_zapocni)
@@ -530,10 +572,22 @@ public class HomeActivity extends BaseActivity implements HomeView {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        mCamera.shutDown();
+//        mCamera.shutDown();
+//
+//        mCameraThread.quitSafely();
 
-        mCameraThread.quitSafely();
-
+        try{
+            backgroundThread.quit();
+        }catch (Exception e){
+            Timber.e(e.getMessage() + "");
+        }
+        backgroundThread = null;
+        backgroundHandler = null;
+        try {
+            cameraHandler.shutDown();
+        }catch (Exception e){
+            Timber.e(e.getMessage() + "");
+        }
         try {
             if (broadcastReceiverTimer != null) {
                 unregisterReceiver(broadcastReceiverTimer);
@@ -612,5 +666,13 @@ public class HomeActivity extends BaseActivity implements HomeView {
 
     private void showUserData(){
         txtUserFirsNameLastName.setText(String.format("%d %s %s %s %s %d %f %f", loginApiResponse.id, loginApiResponse.ime, loginApiResponse.prezime, loginApiResponse.adresa, loginApiResponse.username, loginApiResponse.isAdmin, loginApiResponse.pocetnaKazna, loginApiResponse.preostaloKazne));
+    }
+
+    @Override
+    public void onImageAvailable(ImageReader imageReader) {
+        Bitmap bitmap = imagePreProcessor.preprocessImage(imageReader.acquireNextImage());
+        runOnUiThread(() -> takenImage.setImageBitmap(bitmap));
+        ready = true;
+        isImageTaken = true;
     }
 }
