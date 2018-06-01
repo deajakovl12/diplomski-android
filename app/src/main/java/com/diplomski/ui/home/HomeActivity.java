@@ -154,7 +154,7 @@ public class HomeActivity extends BaseActivity implements HomeView, ImageReader.
 
     private boolean ready = false;
 
-    private Camera camera;
+//    private Camera camera;
 
     public static Intent createIntent(final Context context, final LoginApiResponse loginApiResponse) {
         return new Intent(context, HomeActivity.class).putExtra(LOGIN_EXTRA, loginApiResponse);
@@ -360,11 +360,13 @@ public class HomeActivity extends BaseActivity implements HomeView, ImageReader.
 
     @OnClick(R.id.button_slika)
     public void takePicture() {
-        if(ready){
-            ready = false;
-            backgroundHandler.post(mBackgroundClickHandler);
-        }
+//        if(ready){
+//            ready = false;
+//            backgroundHandler.post(mBackgroundClickHandler);
+//        }
 //        mCamera.takePicture();
+
+        startActivity(new Intent(HomeActivity.this, CameraActivity.class));
     }
 
     private Runnable mBackgroundClickHandler = new Runnable() {

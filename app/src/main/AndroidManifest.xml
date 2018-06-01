@@ -19,7 +19,7 @@
         android:theme="@style/AppTheme">
         <uses-library android:name="com.google.android.things" />
 
-        <activity android:name=".ui.home.HomeActivity"></activity>
+        <activity android:name=".ui.home.HomeActivity" />
 
         <service android:name=".device.ForegroundService" />
 
@@ -40,11 +40,13 @@
             android:name=".ui.wifiactivity.WifiActivity"
             android:parentActivityName=".ui.home.HomeActivity" />
 
-        <receiver android:name="com.diplomski.device.WifiReceiver" >
+        <receiver android:name=".device.WifiReceiver">
             <intent-filter android:priority="100">
                 <action android:name="android.net.wifi.STATE_CHANGE" />
             </intent-filter>
         </receiver>
+
+        <activity android:name=".ui.home.CameraActivity"></activity>
     </application>
 
 </manifest>
