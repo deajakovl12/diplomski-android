@@ -9,6 +9,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.hardware.Camera;
 import android.location.Location;
 import android.location.LocationManager;
 import android.media.Image;
@@ -25,6 +26,9 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.v4.content.ContextCompat;
 import android.util.Base64;
 import android.util.Log;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
+import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ScrollView;
@@ -34,7 +38,6 @@ import android.widget.Toast;
 import com.diplomski.R;
 import com.diplomski.data.api.models.response.LoginApiResponse;
 import com.diplomski.data.api.models.response.MovieApiResponse;
-import com.diplomski.device.Camera;
 import com.diplomski.device.ForegroundService;
 import com.diplomski.domain.model.FullRecordingInfo;
 import com.diplomski.domain.model.RecordInfo;
@@ -68,7 +71,7 @@ import timber.log.Timber;
 import static com.diplomski.injection.module.DataModule.PREFS_NAME;
 
 
-public class HomeActivity extends BaseActivity implements HomeView {
+public class HomeActivity extends BaseActivity implements HomeView, SurfaceHolder.Callback{
 
 
     private static final float MINSTROKEWIDTH = 0.75f;
@@ -95,6 +98,9 @@ public class HomeActivity extends BaseActivity implements HomeView {
     @BindView(R.id.button_zapocni)
     Button buttonStartStop;
 
+    @BindView(R.id.button_slika)
+    Button buttonSlika;
+
     @BindView(R.id.signature_capture_canvas)
     InkView signatureCanvas;
 
@@ -103,9 +109,6 @@ public class HomeActivity extends BaseActivity implements HomeView {
 
     @BindView(R.id.login_user_name)
     TextView txtUserFirsNameLastName;
-
-    @BindView(R.id.image_taken)
-    ImageView takenImage;
 
     @BindView(R.id.fab)
     FloatingActionButton fabMain;
@@ -128,6 +131,10 @@ public class HomeActivity extends BaseActivity implements HomeView {
     @BindView(R.id.connected_wifi)
     TextView connectedWifi;
 
+    @BindView(R.id.surface)
+    SurfaceView surfaceView;
+
+    private SurfaceHolder surfaceHolder;
 
     BroadcastReceiver broadcastReceiverTimer = null;
     BroadcastReceiver broadcastReceiverLocation = null;
@@ -136,13 +143,17 @@ public class HomeActivity extends BaseActivity implements HomeView {
     private boolean isSignatureAdded = false;
     private boolean isImageTaken = false;
 
-    private Camera mCamera;
-    private Handler mCameraHandler;
-    private HandlerThread mCameraThread;
+//    private Camera mCamera;
+//    private Handler mCameraHandler;
+//    private HandlerThread mCameraThread;
 
     private String saveTakenImageBase64;
     private boolean isFABOpen;
 
+    Camera camera;
+    Camera.PictureCallback rawCallback;
+    Camera.ShutterCallback shutterCallback;
+    Camera.PictureCallback jpegCallback;
 
     public static Intent createIntent(final Context context, final LoginApiResponse loginApiResponse) {
         return new Intent(context, HomeActivity.class).putExtra(LOGIN_EXTRA, loginApiResponse);
@@ -170,47 +181,19 @@ public class HomeActivity extends BaseActivity implements HomeView {
         });
         setOnEditorActionListeners();
 
-        mCameraThread = new HandlerThread("CameraBackground");
-        mCameraThread.start();
-        mCameraHandler = new Handler(mCameraThread.getLooper());
+//        mCameraThread = new HandlerThread("CameraBackground");
+//        mCameraThread.start();
+//        mCameraHandler = new Handler(mCameraThread.getLooper());
 
         // Camera code is complicated, so we've shoved it all in this closet class for you.
-        mCamera = Camera.getInstance();
-        mCamera.initializeCamera(this, mCameraHandler, mOnImageAvailableListener);
+//        mCamera = Camera.getInstance();
+//        mCamera.initializeCamera(this, mCameraHandler, mOnImageAvailableListener);
 
+        surfaceHolder = surfaceView.getHolder();
+        surfaceHolder.addCallback(this);
+        surfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+        callbacks();
 
-
-    }
-
-    /**
-     * Listener for new camera images.
-     */
-    private ImageReader.OnImageAvailableListener mOnImageAvailableListener =
-            reader -> {
-                Image image = reader.acquireLatestImage();
-                // get image bytes
-                ByteBuffer imageBuf = image.getPlanes()[0].getBuffer();
-                final byte[] imageBytes = new byte[imageBuf.remaining()];
-                imageBuf.get(imageBytes);
-                image.close();
-                HomeActivity.this.runOnUiThread(() -> onPictureTaken(imageBytes));
-            };
-
-    /**
-     * Upload image data to Firebase as a doorbell event.
-     */
-
-    private void onPictureTaken(final byte[] imageBytes) {
-        if (imageBytes != null) {
-//
-            Log.e("IAGEMGMEEGM", imageBytes.toString() + " a");
-
-            Bitmap bmp = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
-            takenImage.setImageBitmap(bmp);
-            isImageTaken = true;
-            saveTakenImageBase64 = Base64.encodeToString(imageBytes, Base64.DEFAULT);
-            Log.e("Signature base64", saveTakenImageBase64);
-        }
     }
 
     private void setOnEditorActionListeners() {
@@ -258,11 +241,15 @@ public class HomeActivity extends BaseActivity implements HomeView {
     @Override
     public void resetAllToStart(boolean needRefreshUserData) {
         signatureCanvas.clear();
-        takenImage.setImageDrawable(null);
         textView.setText("");
         textViewLocation.setText("");
         textViewDistance.setText("");
         textViewSpeed.setText("");
+        buttonSlika.setText("Započni slikanje");
+        isImageTaken = false;
+        isSignatureAdded = false;
+        surfaceView.setVisibility(View.INVISIBLE);
+        stopCamera();
         if(needRefreshUserData) {
             presenter.updateTraveledDistance();
         }
@@ -329,13 +316,31 @@ public class HomeActivity extends BaseActivity implements HomeView {
 
     @OnClick(R.id.button_slika)
     public void takePicture() {
-        mCamera.takePicture();
+        if(buttonSlika.getText().toString().equals("Slikaj")){
+            buttonSlika.setText("Započni slikanje");
+            captureImage();
+        }else {
+            buttonSlika.setText("Slikaj");
+            startCamera();
+            isImageTaken = false;
+        }
+
+    }
+
+    private void callbacks(){
+        rawCallback = (data, camera) -> Log.d("Log", "onPictureTaken - raw");
+        shutterCallback = () -> Log.i("Log", "onShutter'd");
+        jpegCallback = (data, camera) -> {
+            isImageTaken = true;
+            saveTakenImageBase64 = Base64.encodeToString(data, Base64.DEFAULT);
+            Log.i("AAA", saveTakenImageBase64);
+            stopCamera();
+        };
     }
 
 
     @OnClick(R.id.button_zapocni)
     public void startFollow() {
-
         if (!started) {
             if (isSignatureAdded && isImageTaken) {
                 isSignatureAdded = false;
@@ -352,7 +357,6 @@ public class HomeActivity extends BaseActivity implements HomeView {
 
                 fullRecordingInfo.dateStart = new SimpleDateFormat("dd.MM.yyyy - HH:mm:ss:SS", Locale.getDefault()).format(new Date());
                 fullRecordingInfo.distanceTraveled = 0;
-                //TODO add image
                 fullRecordingInfo.image = saveTakenImageBase64;
 
                 fullRecordingInfo.userId = String.valueOf(loginApiResponse.id);
@@ -449,7 +453,6 @@ public class HomeActivity extends BaseActivity implements HomeView {
         WifiManager wifiManager = (WifiManager) getSystemService (Context.WIFI_SERVICE);
         WifiInfo info = wifiManager.getConnectionInfo ();
         connectedWifi.setText(info.getSSID());
-        //presenter.getMovieInfo();
     }
 
     private boolean isNetworkAvailable() {
@@ -530,10 +533,7 @@ public class HomeActivity extends BaseActivity implements HomeView {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        mCamera.shutDown();
-
-        mCameraThread.quitSafely();
-
+        stopCamera();
         try {
             if (broadcastReceiverTimer != null) {
                 unregisterReceiver(broadcastReceiverTimer);
@@ -612,5 +612,50 @@ public class HomeActivity extends BaseActivity implements HomeView {
 
     private void showUserData(){
         txtUserFirsNameLastName.setText(String.format("%d %s %s %s %s %d %f %f", loginApiResponse.id, loginApiResponse.ime, loginApiResponse.prezime, loginApiResponse.adresa, loginApiResponse.username, loginApiResponse.isAdmin, loginApiResponse.pocetnaKazna, loginApiResponse.preostaloKazne));
+    }
+
+    @Override
+    public void surfaceCreated(SurfaceHolder surfaceHolder) {
+
+    }
+
+    @Override
+    public void surfaceChanged(SurfaceHolder surfaceHolder, int i, int i1, int i2) {
+
+    }
+
+    @Override
+    public void surfaceDestroyed(SurfaceHolder surfaceHolder) {
+
+    }
+
+    private void captureImage() {
+        camera.takePicture(shutterCallback, rawCallback, jpegCallback);
+    }
+
+    private void startCamera() {
+        try{
+            surfaceView.setVisibility(View.VISIBLE);
+            camera = Camera.open();
+        }catch(RuntimeException e){
+            Log.e("HomeAc", "init_camera: " + e);
+            return;
+        }
+        try {
+            camera.setPreviewDisplay(surfaceHolder);
+            camera.startPreview();
+        } catch (Exception e) {
+            Log.e("HomeAc", "init_camera: " + e);
+            return;
+        }
+    }
+
+    private void stopCamera() {
+        try {
+            camera.stopPreview();
+            camera.release();
+        }catch (Exception e){
+            Timber.e("CANT" + e.getMessage());
+        }
     }
 }
