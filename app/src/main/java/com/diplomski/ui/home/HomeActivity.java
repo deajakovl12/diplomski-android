@@ -1,18 +1,12 @@
 package com.diplomski.ui.home;
 
 import android.Manifest;
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.location.GnssStatus;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.location.OnNmeaMessageListener;
-import android.net.wifi.ScanResult;
-import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Toast;
@@ -20,8 +14,8 @@ import android.widget.Toast;
 import com.diplomski.R;
 import com.diplomski.domain.model.MovieInfo;
 import com.diplomski.injection.component.ActivityComponent;
+import com.diplomski.nmea.NmeaGpsDriver;
 import com.diplomski.ui.base.activities.BaseActivity;
-import com.google.android.things.contrib.driver.gps.NmeaGpsDriver;
 
 import java.io.IOException;
 import java.util.List;
@@ -30,7 +24,6 @@ import javax.inject.Inject;
 
 import butterknife.ButterKnife;
 import butterknife.OnClick;
-import timber.log.Timber;
 
 
 public class HomeActivity extends BaseActivity implements HomeView {
