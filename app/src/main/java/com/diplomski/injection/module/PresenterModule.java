@@ -1,6 +1,7 @@
 package com.diplomski.injection.module;
 
 import com.diplomski.data.api.converter.MovieAPIConverter;
+import com.diplomski.data.storage.PreferenceRepository;
 import com.diplomski.domain.usecase.LoginUseCase;
 import com.diplomski.domain.usecase.MovieUseCase;
 import com.diplomski.domain.usecase.RecordUseCase;
@@ -32,14 +33,15 @@ public final class PresenterModule {
                                        MovieAPIConverter movieAPIConverter,
                                        StringManager stringManager,
                                        RecordUseCase recordUseCase,
-                                       LoginUseCase loginUseCase) {
+                                       LoginUseCase loginUseCase,
+                                       PreferenceRepository preferences) {
         return new HomePresenterImpl(subscribeScheduler,
                 observeScheduler,
                 movieUseCase,
                 movieAPIConverter,
                 stringManager,
                 recordUseCase,
-                loginUseCase);
+                loginUseCase, preferences);
     }
 
     @ForActivity

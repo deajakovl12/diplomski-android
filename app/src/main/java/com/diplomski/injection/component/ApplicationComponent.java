@@ -3,6 +3,7 @@ package com.diplomski.injection.component;
 import com.diplomski.application.TaskApplication;
 import com.diplomski.data.api.converter.MovieAPIConverter;
 import com.diplomski.data.service.NetworkService;
+import com.diplomski.data.storage.PreferenceRepository;
 import com.diplomski.data.storage.TemplatePreferences;
 import com.diplomski.data.storage.database.DatabaseHelper;
 import com.diplomski.device.ApplicationInformation;
@@ -77,7 +78,7 @@ public interface ApplicationComponent extends ApplicationComponentInjects {
 
     MovieAPIConverter getMovieApiConverter();
 
-    TemplatePreferences getTemplatePreferences();
+    PreferenceRepository getPreferenceRepository();
 
     NetworkService getNetworkService();
 

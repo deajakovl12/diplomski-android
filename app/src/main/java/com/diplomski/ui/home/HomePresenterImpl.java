@@ -7,6 +7,7 @@ import com.diplomski.data.api.models.request.FullRecordInfoRequest;
 import com.diplomski.data.api.models.response.LoginApiResponse;
 import com.diplomski.data.api.models.response.MovieApiResponse;
 import com.diplomski.data.api.models.response.UploadDataResponse;
+import com.diplomski.data.storage.PreferenceRepository;
 import com.diplomski.domain.model.FullRecordingInfo;
 import com.diplomski.domain.model.RecordInfo;
 import com.diplomski.domain.usecase.LoginUseCase;
@@ -45,10 +46,12 @@ public final class HomePresenterImpl extends BasePresenter implements HomePresen
 
     private final LoginUseCase loginUseCase;
 
+    private final PreferenceRepository preferences;
+
     public HomePresenterImpl(@Named(SUBSCRIBE_SCHEDULER) final Scheduler subscribeScheduler,
                              @Named(OBSERVE_SCHEDULER) final Scheduler observeScheduler, final MovieUseCase movieUseCase,
                              final MovieAPIConverter movieAPIConverter, final StringManager stringManager,
-                             final RecordUseCase recordUseCase, final LoginUseCase loginUseCase) {
+                             final RecordUseCase recordUseCase, final LoginUseCase loginUseCase, final PreferenceRepository preferences) {
         this.subscribeScheduler = subscribeScheduler;
         this.observeScheduler = observeScheduler;
         this.movieUseCase = movieUseCase;
@@ -56,6 +59,7 @@ public final class HomePresenterImpl extends BasePresenter implements HomePresen
         this.stringManager = stringManager;
         this.recordUseCase = recordUseCase;
         this.loginUseCase = loginUseCase;
+        this.preferences = preferences;
     }
 
     @Override
@@ -260,5 +264,27 @@ public final class HomePresenterImpl extends BasePresenter implements HomePresen
         if(view != null){
             view.updateUserDistance(loginApiResponse);
         }
+    }
+
+    @Override
+    public void saveLatLngSpeedToPref(double lat, double lng, float speed) {
+        preferences.setLat(lat);
+        preferences.setLng(lng);
+        preferences.setSpeed(speed);
+    }
+
+    @Override
+    public float getLat() {
+        return preferences.getLat();
+    }
+
+    @Override
+    public float getLng() {
+        return preferences.getLng();
+    }
+
+    @Override
+    public float getSpeed() {
+        return preferences.getSpeed();
     }
 }

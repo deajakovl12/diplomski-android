@@ -14,4 +14,12 @@ public interface PreferenceRepository {
 
     String getLastRecordId();
 
+    void setLat(double lat);
+    void setLng(double lng);
+    void setSpeed(float speed);
+
+    float getLat();
+    float getLng();
+    float getSpeed();
+
 }

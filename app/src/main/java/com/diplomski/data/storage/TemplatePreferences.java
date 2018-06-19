@@ -14,6 +14,10 @@ public final class TemplatePreferences implements PreferenceRepository {
 
     private static final String KEY_USER_ID = "key_user_id";
 
+    private static final String KEY_GPS_LAT = "key_gps_lat";
+    private static final String KEY_GPS_LNG = "key_gps_lng";
+    private static final String KEY_GPS_SPEED = "key_gps_speed";
+
 
 
     private final SharedPreferences secureDelegate;
@@ -56,5 +60,38 @@ public final class TemplatePreferences implements PreferenceRepository {
     @Override
     public String getLastRecordId() {
         return secureDelegate.getString(KEY_LAST_RECORD_ID, EMPTY_STRING);
+    }
+
+    @Override
+    public void setLat(double lat) {
+        secureDelegate.edit().putFloat(KEY_GPS_LAT, (float) lat).apply();
+
+    }
+
+    @Override
+    public void setLng(double lng) {
+        secureDelegate.edit().putFloat(KEY_GPS_LNG, (float) lng).apply();
+
+    }
+
+    @Override
+    public void setSpeed(float speed) {
+        secureDelegate.edit().putFloat(KEY_GPS_SPEED, speed).apply();
+
+    }
+
+    @Override
+    public float getLat() {
+        return secureDelegate.getFloat(KEY_GPS_LAT, 0);
+    }
+
+    @Override
+    public float getLng() {
+        return secureDelegate.getFloat(KEY_GPS_LNG, 0);
+    }
+
+    @Override
+    public float getSpeed() {
+        return secureDelegate.getFloat(KEY_GPS_SPEED, 0);
     }
 }

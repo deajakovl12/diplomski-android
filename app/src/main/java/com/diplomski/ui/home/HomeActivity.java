@@ -8,19 +8,18 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.hardware.Camera;
+import android.location.GnssStatus;
 import android.location.Location;
+import android.location.LocationListener;
 import android.location.LocationManager;
-import android.media.Image;
-import android.media.ImageReader;
+import android.location.OnNmeaMessageListener;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.HandlerThread;
 import android.provider.Settings;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.content.ContextCompat;
@@ -30,7 +29,6 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Button;
-import android.widget.ImageView;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -42,6 +40,7 @@ import com.diplomski.device.ForegroundService;
 import com.diplomski.domain.model.FullRecordingInfo;
 import com.diplomski.domain.model.RecordInfo;
 import com.diplomski.injection.component.ActivityComponent;
+import com.diplomski.nmea.NmeaGpsDriver;
 import com.diplomski.ui.base.activities.BaseActivity;
 import com.diplomski.ui.login.LoginActivity;
 import com.diplomski.ui.wifiactivity.WifiActivity;
@@ -54,7 +53,7 @@ import com.karumi.dexter.listener.multi.MultiplePermissionsListener;
 import com.simplify.ink.InkView;
 
 import java.io.ByteArrayOutputStream;
-import java.nio.ByteBuffer;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -69,9 +68,10 @@ import butterknife.OnClick;
 import timber.log.Timber;
 
 import static com.diplomski.injection.module.DataModule.PREFS_NAME;
+import static com.facebook.stetho.inspector.network.ResponseHandlingInputStream.TAG;
 
 
-public class HomeActivity extends BaseActivity implements HomeView, SurfaceHolder.Callback{
+public class HomeActivity extends BaseActivity implements HomeView, SurfaceHolder.Callback {
 
 
     private static final float MINSTROKEWIDTH = 0.75f;
@@ -79,6 +79,14 @@ public class HomeActivity extends BaseActivity implements HomeView, SurfaceHolde
     private static final int COMPRESS_QUALITY = 100;
 
     private static final String LOGIN_EXTRA = "login_extra";
+
+
+    public static final int UART_BAUD = 4800;
+    public static final float ACCURACY = 2.5f;
+
+    private LocationManager mLocationManager;
+    private NmeaGpsDriver mGpsDriver;
+
 
     @Inject
     HomePresenter presenter;
@@ -155,6 +163,10 @@ public class HomeActivity extends BaseActivity implements HomeView, SurfaceHolde
     Camera.ShutterCallback shutterCallback;
     Camera.PictureCallback jpegCallback;
 
+    private boolean saveLocation = true;
+
+    private Handler handlerSaveLoc = new Handler();
+
     public static Intent createIntent(final Context context, final LoginApiResponse loginApiResponse) {
         return new Intent(context, HomeActivity.class).putExtra(LOGIN_EXTRA, loginApiResponse);
     }
@@ -194,6 +206,41 @@ public class HomeActivity extends BaseActivity implements HomeView, SurfaceHolde
         surfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
         callbacks();
 
+
+        mLocationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+
+    }
+
+    private void startUpdatingLocation() {
+        try {
+            // Register the GPS driver
+            mGpsDriver = new NmeaGpsDriver(this, "UART6",
+                    UART_BAUD, ACCURACY);
+            mGpsDriver.register();
+            // Register for location updates
+            mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,
+                    0, 0, mLocationListener);
+            mLocationManager.registerGnssStatusCallback(mStatusCallback);
+            mLocationManager.addNmeaListener(mMessageListener);
+            Log.w(TAG, "OPEMN UART");
+        } catch (IOException e) {
+            Log.w(TAG, "Unable to open GPS UART", e);
+        }
+    }
+
+    private void stopUpdates(){
+        if (mGpsDriver != null) {
+            // Unregister components
+            try {
+                mGpsDriver.unregister();
+                mLocationManager.removeUpdates(mLocationListener);
+                mLocationManager.unregisterGnssStatusCallback(mStatusCallback);
+                mLocationManager.removeNmeaListener(mMessageListener);
+                mGpsDriver.close();
+            } catch (IOException e) {
+                Log.w(TAG, "Unable to close GPS driver", e);
+            }
+        }
     }
 
     private void setOnEditorActionListeners() {
@@ -250,7 +297,7 @@ public class HomeActivity extends BaseActivity implements HomeView, SurfaceHolde
         isSignatureAdded = false;
         surfaceView.setVisibility(View.INVISIBLE);
         stopCamera();
-        if(needRefreshUserData) {
+        if (needRefreshUserData) {
             presenter.updateTraveledDistance();
         }
     }
@@ -316,10 +363,10 @@ public class HomeActivity extends BaseActivity implements HomeView, SurfaceHolde
 
     @OnClick(R.id.button_slika)
     public void takePicture() {
-        if(buttonSlika.getText().toString().equals("Slikaj")){
+        if (buttonSlika.getText().toString().equals("Slikaj")) {
             buttonSlika.setText("Započni slikanje");
             captureImage();
-        }else {
+        } else {
             buttonSlika.setText("Slikaj");
             startCamera();
             isImageTaken = false;
@@ -327,7 +374,7 @@ public class HomeActivity extends BaseActivity implements HomeView, SurfaceHolde
 
     }
 
-    private void callbacks(){
+    private void callbacks() {
         rawCallback = (data, camera) -> Log.d("Log", "onPictureTaken - raw");
         shutterCallback = () -> Log.i("Log", "onShutter'd");
         jpegCallback = (data, camera) -> {
@@ -366,8 +413,11 @@ public class HomeActivity extends BaseActivity implements HomeView, SurfaceHolde
                 presenter.saveFullRecordToDb(fullRecordingInfo);
                 started = true;
                 buttonStartStop.setText("Zavrsi");
+
                 startService(new Intent(HomeActivity.this, ForegroundService.class)
                         .setAction(Constants.ACTION.STARTFOREGROUND_ACTION));
+
+                startUpdatingLocation();
 
                 registerBroadCastReceiverTimer();
                 registerBroadCastReceiverLocation();
@@ -388,6 +438,7 @@ public class HomeActivity extends BaseActivity implements HomeView, SurfaceHolde
             } catch (Exception e) {
                 Timber.e("VEC ZAUSTAVLJENI RECEIVERI");
             }
+            stopUpdates();
             startService(new Intent(HomeActivity.this, ForegroundService.class).setAction(Constants.ACTION.STOPFOREGROUND_ACTION));
 
             createSnimanjeZavrseno();
@@ -429,13 +480,17 @@ public class HomeActivity extends BaseActivity implements HomeView, SurfaceHolde
 
 
                 if (location != null) {
+//                if((presenter.getLat() == 0.0 || presenter.getLat() == 0) || (presenter.getLng() == 0.0 || presenter.getLng() == 0)){
+         //do nothing
+//                }else{
                     RecordInfo recordInfo = new RecordInfo();
                     recordInfo.currentDate = new SimpleDateFormat("dd.MM.yyyy - HH:mm:ss:SS", Locale.getDefault()).format(new Date());
                     recordInfo.distanceFromLast = distanceLastTwo;
                     recordInfo.lat = location.getLatitude();
                     recordInfo.lng = location.getLongitude();
                     recordInfo.speed = speed;
-                    recordInfo.speedLimit = 0;
+                    Log.e("SPEED LOCATION SPEEED", location.getSpeed() +" a");
+                    recordInfo.speedLimit = location.getSpeed() * 3.6F;
                     presenter.saveRecordToDb(recordInfo, distance);
                 }
 
@@ -450,8 +505,8 @@ public class HomeActivity extends BaseActivity implements HomeView, SurfaceHolde
         presenter.setView(this);
         presenter.checkDataForUpload();
 
-        WifiManager wifiManager = (WifiManager) getSystemService (Context.WIFI_SERVICE);
-        WifiInfo info = wifiManager.getConnectionInfo ();
+        WifiManager wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+        WifiInfo info = wifiManager.getConnectionInfo();
         connectedWifi.setText(info.getSSID());
     }
 
@@ -546,6 +601,9 @@ public class HomeActivity extends BaseActivity implements HomeView, SurfaceHolde
         } catch (Exception e) {
             Timber.e("vec zaustavljen receiver!");
         }
+
+        stopUpdates();
+
         startService(new Intent(HomeActivity.this, ForegroundService.class).setAction(Constants.ACTION.STOPFOREGROUND_ACTION));
 
     }
@@ -610,7 +668,7 @@ public class HomeActivity extends BaseActivity implements HomeView, SurfaceHolde
         showUserData();
     }
 
-    private void showUserData(){
+    private void showUserData() {
         txtUserFirsNameLastName.setText(String.format("%d %s %s %s %s %d %f %f", loginApiResponse.id, loginApiResponse.ime, loginApiResponse.prezime, loginApiResponse.adresa, loginApiResponse.username, loginApiResponse.isAdmin, loginApiResponse.pocetnaKazna, loginApiResponse.preostaloKazne));
     }
 
@@ -634,10 +692,10 @@ public class HomeActivity extends BaseActivity implements HomeView, SurfaceHolde
     }
 
     private void startCamera() {
-        try{
+        try {
             surfaceView.setVisibility(View.VISIBLE);
             camera = Camera.open();
-        }catch(RuntimeException e){
+        } catch (RuntimeException e) {
             Log.e("HomeAc", "init_camera: " + e);
             return;
         }
@@ -654,8 +712,78 @@ public class HomeActivity extends BaseActivity implements HomeView, SurfaceHolde
         try {
             camera.stopPreview();
             camera.release();
-        }catch (Exception e){
+        } catch (Exception e) {
             Timber.e("CANT" + e.getMessage());
         }
     }
+
+    int brojDohvacenihLokacija = 0;
+    /** Report location updates */
+    private LocationListener mLocationListener = new LocationListener() {
+        @Override
+        public void onLocationChanged(Location location) {
+            if(brojDohvacenihLokacija >= 7) {
+                if (saveLocation) {
+                    saveLocation = false;
+                    Log.e("SAVE LOCATION CALLED", "SAVE LOCAtiON");
+                    startService(new Intent(HomeActivity.this, ForegroundService.class)
+                            .setAction(Constants.ACTION.LOCATION_CAME_ACTION).putExtra("NEW_LOCATION", location));
+                    //presenter.saveLatLngSpeedToPref(location.getLatitude(), location.getLongitude(), location.getSpeed());
+                    handlerSaveLoc.postDelayed(() -> saveLocation = true, 7500);
+                }
+            }
+            else{
+                brojDohvacenihLokacija ++;
+            }
+
+            Log.v(TAG, "Location update: " + location);
+        }
+
+        @Override
+        public void onStatusChanged(String provider, int status, Bundle extras) {
+            Log.v(TAG, "onStatusChanged: " + provider);
+
+        }
+
+        @Override
+        public void onProviderEnabled(String provider) {
+            Log.v(TAG, "onProviderEnabled: " + provider);
+
+        }
+
+        @Override
+        public void onProviderDisabled(String provider) {
+            Log.v(TAG, "onProviderDisabled: " + provider);
+
+        }
+    };
+
+    /** Report satellite status */
+    private GnssStatus.Callback mStatusCallback = new GnssStatus.Callback() {
+        @Override
+        public void onStarted() {
+            Log.v(TAG, "onStarted: " + "a");
+
+        }
+
+        @Override
+        public void onStopped() {
+            Log.v(TAG, "onStopped: " + "a");
+
+        }
+
+        @Override
+        public void onFirstFix(int ttffMillis) {
+            Log.v(TAG, "onFirstFix: " + "a");
+
+        }
+
+        @Override
+        public void onSatelliteStatusChanged(GnssStatus status) {
+            Log.v(TAG, "GNSS Status: " + status.getSatelliteCount() + " satellites.");
+        }
+    };
+
+    /** Report raw NMEA messages */
+    private OnNmeaMessageListener mMessageListener = (message, timestamp) -> Log.v(TAG, "NMEA: " + message);
 }

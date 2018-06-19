@@ -8,6 +8,7 @@ public class Constants {
         String BROADCAST_ACTION_LOCATION = "fdiplomski.action.broadcast.location";
         String STARTFOREGROUND_ACTION = "diplomski.action.startforeground";
         String STOPFOREGROUND_ACTION = "diplomski.action.stopforeground";
+        String LOCATION_CAME_ACTION = "diplomski.action.locationcame";
 
     }
 

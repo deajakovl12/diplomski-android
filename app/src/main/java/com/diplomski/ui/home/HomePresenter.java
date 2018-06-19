@@ -26,4 +26,12 @@ public interface HomePresenter {
 
     void updateTraveledDistance();
 
+    void saveLatLngSpeedToPref(double lat, double lng, float speed);
+
+    float getLat();
+
+    float getLng();
+
+    float getSpeed();
+
 }

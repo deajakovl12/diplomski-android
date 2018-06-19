@@ -31,7 +31,7 @@ public class ForegroundService extends Service {
     private long startTime = 0L;
     private long timeInMilliseconds = 0L;
     private boolean stopTimer = false;
-//    private LocationProvider fusedLocationProvider = null;
+    //    private LocationProvider fusedLocationProvider = null;
     private Location currentLocation = null;
     private Location oldLocation = null;
     private double distance = 0;
@@ -97,8 +97,8 @@ public class ForegroundService extends Service {
 //                fusedLocationProvider.stopLocationUpdates();
 //            }
 
-            currentLocation = null;
-            oldLocation = null;
+//            currentLocation = null;
+//            oldLocation = null;
             distance = 0;
             speed = 0;
             speedAccuracy = 0;
@@ -109,31 +109,12 @@ public class ForegroundService extends Service {
             stopTimer = true;
             stopForeground(true);
             stopSelf();
-        }
-        return START_STICKY;
-    }
-
-    private Runnable updateTimerThread = new Runnable() {
-        public void run() {
-            timeInMilliseconds = SystemClock.uptimeMillis() - startTime;
-            intent.putExtra("timeInMilliseconds", timeInMilliseconds);
-            /*intent.putExtra("distanceInMeters",distance);
-            intent.putExtra("elevationGainInMeters",elevationGain);
-            intent.putExtra("calories", calories);*/
-            sendBroadcast(intent);
-            if (!stopTimer) {
-                trainingHandler.postDelayed(this, 500);
-            }
-        }
-    };
-
-    int i = 0;
-    private Runnable updateLocationThread = new Runnable() {
-        public void run() {
+        } else if (intent.getAction().equals(Constants.ACTION.LOCATION_CAME_ACTION)) {
             oldLocation = currentLocation;
             oldTimeSpeed = currentTimeSpeed;
             currentTimeSpeed = System.currentTimeMillis();
-            if (i == 0) {
+            currentLocation = intent.getParcelableExtra("NEW_LOCATION");
+           /* if (i == 0) {
 //                currentLocation = fusedLocationProvider.getCurrentLocation();
             } else if (i == 1) {
                 currentLocation = new Location("");
@@ -156,33 +137,56 @@ public class ForegroundService extends Service {
                 currentLocation.setLatitude(45.594587);
                 currentLocation.setLongitude(17.217351);
             }
-            i++;
+            i++;*/
             if (oldLocation != null && currentLocation != null) {
 //                speed = currentLocation.getSpeed();
-                long diff = currentTimeSpeed - oldTimeSpeed;
+            long diff = currentTimeSpeed - oldTimeSpeed;
 
-                //TODO check this
+            //TODO check this
                 /*if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     speedAccuracy = currentLocation.getSpeedAccuracyMetersPerSecond();
                 }*/
-                distance += calculateDistance(oldLocation, currentLocation);
+            distance += calculateDistance(oldLocation, currentLocation);
 //                distance += 10;
 //                distanceLastTwo = 2;
-                distanceLastTwo = calculateDistance(oldLocation, currentLocation);
+            distanceLastTwo = calculateDistance(oldLocation, currentLocation);
 
-                int seconds = (int) (diff / 1000) % 60 ;
+            int seconds = (int) (diff / 1000) % 60;
 
-                speed = distanceLastTwo / seconds;
-                speedInKmh = speed * 3.6F;
+            speed = distanceLastTwo / seconds;
+            speedInKmh = speed * 3.6F;
 
-                intentLocation.putExtra("newDistanceLastTwo", distanceLastTwo);
-                intentLocation.putExtra("newDistance", distance);
-                intentLocation.putExtra("newSpeed", speedInKmh);
+            intentLocation.putExtra("newDistanceLastTwo", distanceLastTwo);
+            intentLocation.putExtra("newDistance", distance);
+            intentLocation.putExtra("newSpeed", speedInKmh);
 
             }
             intentLocation.putExtra("newLocation", currentLocation);
 
             sendBroadcast(intentLocation);
+        }
+
+        return START_STICKY;
+    }
+
+    private Runnable updateTimerThread = new Runnable() {
+        public void run() {
+            timeInMilliseconds = SystemClock.uptimeMillis() - startTime;
+            intent.putExtra("timeInMilliseconds", timeInMilliseconds);
+            /*intent.putExtra("distanceInMeters",distance);
+            intent.putExtra("elevationGainInMeters",elevationGain);
+            intent.putExtra("calories", calories);*/
+            sendBroadcast(intent);
+            if (!stopTimer) {
+                trainingHandler.postDelayed(this, 500);
+            }
+        }
+    };
+
+    //    int i = 0;
+    private Runnable updateLocationThread = new Runnable() {
+        public void run() {
+//
             if (!stopTimer) {
                 locationHandler.postDelayed(this, 5000);
             }
