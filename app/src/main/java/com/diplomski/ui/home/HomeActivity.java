@@ -29,6 +29,7 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -54,6 +55,7 @@ import com.simplify.ink.InkView;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -118,6 +120,12 @@ public class HomeActivity extends BaseActivity implements HomeView, SurfaceHolde
     @BindView(R.id.login_user_name)
     TextView txtUserFirsNameLastName;
 
+    @BindView(R.id.user_address)
+    TextView userAdress;
+
+    @BindView(R.id.user_kazna)
+    TextView userKazna;
+
     @BindView(R.id.fab)
     FloatingActionButton fabMain;
 
@@ -141,6 +149,9 @@ public class HomeActivity extends BaseActivity implements HomeView, SurfaceHolde
 
     @BindView(R.id.surface)
     SurfaceView surfaceView;
+
+    @BindView(R.id.detail_layout)
+    LinearLayout detailLayout;
 
     private SurfaceHolder surfaceHolder;
 
@@ -287,6 +298,8 @@ public class HomeActivity extends BaseActivity implements HomeView, SurfaceHolde
 
     @Override
     public void resetAllToStart(boolean needRefreshUserData) {
+        detailLayout.setVisibility(View.GONE);
+        brojDohvacenihLokacija = 0;
         signatureCanvas.clear();
         textView.setText("");
         textViewLocation.setText("");
@@ -421,6 +434,8 @@ public class HomeActivity extends BaseActivity implements HomeView, SurfaceHolde
 
                 registerBroadCastReceiverTimer();
                 registerBroadCastReceiverLocation();
+
+                detailLayout.setVisibility(View.VISIBLE);
             } else {
                 Toast.makeText(this, "POTPISITE SE I POSLIKAJTE KAO EVIDENCIJA!", Toast.LENGTH_SHORT).show();
             }
@@ -669,7 +684,16 @@ public class HomeActivity extends BaseActivity implements HomeView, SurfaceHolde
     }
 
     private void showUserData() {
-        txtUserFirsNameLastName.setText(String.format("%d %s %s %s %s %d %f %f", loginApiResponse.id, loginApiResponse.ime, loginApiResponse.prezime, loginApiResponse.adresa, loginApiResponse.username, loginApiResponse.isAdmin, loginApiResponse.pocetnaKazna, loginApiResponse.preostaloKazne));
+
+        txtUserFirsNameLastName.setText(String.format("%s %s",  loginApiResponse.ime, loginApiResponse.prezime));
+        userAdress.setText(String.format("%s", loginApiResponse.adresa));
+        userKazna.setText(round(((float)loginApiResponse.pocetnaKazna/1000), 2) + " / " + round(((float)loginApiResponse.preostaloKazne/1000),2) + " km");
+    }
+
+    public static float round(float d, int decimalPlace) {
+        BigDecimal bd = new BigDecimal(Float.toString(d));
+        bd = bd.setScale(decimalPlace, BigDecimal.ROUND_HALF_UP);
+        return bd.floatValue();
     }
 
     @Override
@@ -722,7 +746,7 @@ public class HomeActivity extends BaseActivity implements HomeView, SurfaceHolde
     private LocationListener mLocationListener = new LocationListener() {
         @Override
         public void onLocationChanged(Location location) {
-            if(brojDohvacenihLokacija >= 7) {
+            if(brojDohvacenihLokacija >= 8) {
                 if (saveLocation) {
                     saveLocation = false;
                     Log.e("SAVE LOCATION CALLED", "SAVE LOCAtiON");
